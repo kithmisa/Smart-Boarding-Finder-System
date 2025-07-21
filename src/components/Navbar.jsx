@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -22,12 +23,12 @@ const Navbar = () => {
         <img src="/logo1.png" alt="logo" className="w-24 h-24" />
       </div>
       <div className="flex gap-14 ml-80">
-        <a href="#" className="hover:underline">Home</a>
+        <Link to="/" className="hover:underline">Home</Link>
         <a href="#" className="hover:underline">Boardings</a>
         <a href="#" className="hover:underline">Contact</a>
-        <a href="#" className="hover:underline">About</a>
+        <Link to="/about" className="hover:underline">About</Link>
       </div>
-      <button className="bg-transparent text-black px-6 py-2.5 rounded-xl font-bold text-xl hover:bg-gray-100 border-2 border-black">
+      <button className="bg-transparent text-black px-6 py-2.5 rounded-normal font-bold text-xl hover:bg-gray-100 border-2 border-black">
         Register
       </button>
     </nav>
