@@ -1,0 +1,107 @@
+.boarding-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+  min-height: 100vh;
+
+  background-image: url('image (1).png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+.boarding-card {
+  background-color: #ffffff;
+  color: #000;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: 0.3s;
+}
+
+.boarding-card:hover {
+  transform: scale(1.02);
+}
+
+.boarding-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.boarding-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.boarding-address {
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.boarding-status {
+  margin-top: 10px;
+  padding: 8px 16px;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: default;
+}
+
+.boarding-status.available {
+  background-color: #22c55e;
+}
+
+.boarding-status.gone {
+  background-color: #ef4444;
+}
+
+.boarding-date {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #444;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.available {
+  background-color: #28a745;  /* green */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.available:hover {
+  background-color: #218838;
+}
+
+.gone {
+  background-color: #dc3545;  /* red */
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.gone:hover {
+  background-color: #c82333;
+}
+

@@ -1,0 +1,53 @@
+/* src/components/PerDayRoom.css */
+.room-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 40px;
+  min-height: 100vh;
+  background: url("../assets/background.jpg") no-repeat center center/cover;
+}
+
+.room-image {
+  width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.room-details {
+  color: #fff;
+  max-width: 400px;
+}
+
+.room-details h2 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.room-details h3 {
+  font-size: 1.5rem;
+  margin-top: 10px;
+}
+
+.room-details p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.gone-button {
+  background-color: red;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  margin-top: 10px;
+  cursor: not-allowed;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.more-details {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
