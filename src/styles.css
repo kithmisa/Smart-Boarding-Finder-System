@@ -1,0 +1,140 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+}
+.checkbox-row {
+  display: flex;
+  gap: 5px;
+  margin-top: 20px;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.checkbox-row label {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.checkbox-row input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+
+.login-page {
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.nav-links a {
+  margin: 0 15px;
+  color: white;
+  text-decoration: none;
+}
+
+.register-btn {
+  padding: 5px 15px;
+  background-color: white;
+  color: black;
+  border: none;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.login-box {
+  background: rgba(0, 0, 0, 0.6);
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.login-box h2 {
+  margin-bottom: 20px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 5px;
+}
+
+.sign-in-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #fff;
+  border: none;
+  border-radius: 5px;
+  color: black;
+  cursor: pointer;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.logo .icon img {
+  width: 60px;
+  height: 60px;
+  margin-right: 10px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.footer-left, .footer-center, .footer-right {
+  flex: 1;
+  margin: 10px;
+}
+
+.social-icons a {
+  margin: 0 10px;
+  color: white;
+  text-decoration: none;
+}
+
+.footer h4 {
+  margin-bottom: 10px;
+}
+
+.footer ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+.icon {
+  font-size: 1.2em;
+  margin-right: 5px;
+}
