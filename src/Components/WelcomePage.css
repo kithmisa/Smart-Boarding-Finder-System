@@ -1,0 +1,18 @@
+.welcome-container {
+  padding: 2rem;
+  background: #f9fafb67;
+  border-radius: 12px;
+  margin: 2rem;
+  box-shadow: rgba(177, 162, 162, 0.404);
+  backdrop-filter: blur(40px);
+}
+
+.welcome-container h2 {
+  color: #2b6cb0;
+}
+
+.welcome-container p {
+  font-size: 1rem;
+  color: #333;
+  margin-top: 0.5rem;
+}
