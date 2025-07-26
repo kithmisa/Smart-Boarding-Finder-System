@@ -58,8 +58,10 @@ const AddBoardingForm = () => {
   };
 
   return (
+    <div className="form-wrapper">
+   <h3 className="form-heading">Add New Boarding</h3>
     <div className="form-container">
-      <h3>Add New Boarding</h3>
+      
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -282,6 +284,7 @@ const AddBoardingForm = () => {
 
         <button type="submit" style={{ marginTop: '20px' }}>Add</button>
       </form>
+    </div>
     </div>
   );
 };

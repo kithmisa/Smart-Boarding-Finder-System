@@ -1,12 +1,31 @@
-.form-container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 25px;
-  background-color: #f9fafb67 ;
-  border-radius: 10px;
-  backdrop-filter: blur(100px);
+.form-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  min-height: 100vh; /* Full screen height */
+  padding: 40px 20px;
 }
 
+.form-container {
+  width: 100%;
+  max-width: 700px;
+  margin: auto;
+  padding: 20px;
+  background-color: #f9fafbea ;
+  border-radius: 10px;
+  backdrop-filter: blur(100px);
+  justify-content: center;
+  display: flex;
+}
+
+.form-heading {
+  font-size: 28px;
+  margin-bottom: 20px;
+  text-align: right;
+  color: #333;
+  color: rgba(240, 248, 255, 0.384);
+}
 .row-group {
   margin: 15px 0;
   display: flex;
@@ -27,15 +46,24 @@ input, textarea, select {
   margin: 8px 0 16px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
+  border-color: #6d741386;
+}
+
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 6px;
+  
 }
 
 button {
-  padding: 10px 20px;
-  background: #171b1f;
+  padding: 10px 40px;
+  background: #180806;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  padding-top: 20px;
+  
 }
 
 .price-negotiable-row {
@@ -54,4 +82,5 @@ button {
 
 .description{
   height: 100px;
+  resize: vertical;
 }
