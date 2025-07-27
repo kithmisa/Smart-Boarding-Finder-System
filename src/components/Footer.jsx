@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaFacebook, FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
 
 const Footer = () => {
@@ -64,10 +65,10 @@ const Footer = () => {
         <div>
           <h3 className="font-bold mb-2">Navigation</h3>
           <ul className="space-y-1">
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Boardings</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">About</a></li>
+            <li><Link to="/" className="hover:underline">Home</Link></li>
+            <li><a href="#" className="hover:underline">Boardings</a></li>
+            <li><a href="#" className="hover:underline">Contact</a></li>
+            <li><Link to="/about" className="hover:underline">About</Link></li>
           </ul>
         </div>
 
