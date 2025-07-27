@@ -1,0 +1,81 @@
+.payment-container {
+  max-width: 400px;
+  margin: 5rem auto;
+  padding: 2rem;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+.payment-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+}
+
+.payment-form label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+}
+
+.payment-form input {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.card-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card-details input {
+  width: 100%;
+}
+
+button[type="submit"] {
+  margin-top: 2rem;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4e32ec;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button[type="submit"]:hover {
+  background-color: #555;
+}
+
+.otp-form {
+  margin-top: 2rem;
+}
+
+.otp-form input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.success-message {
+  color: #444; /* neutral or match your theme */
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 1rem;
+  border-radius: 5px;
+  text-align: center;
+  margin-top: 2rem;
+  font-weight: bold;
+}
