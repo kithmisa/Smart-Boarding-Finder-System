@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebook, FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
+import { FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
+
 
 const Footer = () => {
   const [rating, setRating] = useState(null);
@@ -67,7 +69,7 @@ const Footer = () => {
           <ul className="space-y-1">
             <li><Link to="/" className="hover:underline">Home</Link></li>
             <li><a href="#" className="hover:underline">Boardings</a></li>
-            <li><a href="#" className="hover:underline">Contact</a></li>
+            <li><Link to="/contact" className="hover:underline">Contact</Link></li>
             <li><Link to="/about" className="hover:underline">About</Link></li>
           </ul>
         </div>
@@ -75,9 +77,16 @@ const Footer = () => {
         {/* Contact */}
         <div>
           <h3 className="font-bold mb-2">Contact</h3>
-          <p className="flex items-center gap-2">📧 info@sbf.lk</p>
-          <p className="flex items-center gap-2 mt-2">📞 +94 712432145</p>
+          <p className="flex items-center gap-2">
+            <FaEnvelope className="text-black-500" />
+            info@sbf.lk
+          </p>
+          <p className="flex items-center gap-2 mt-2">
+            <FaPhoneAlt className="text-black-500" />
+            +94 712432145
+          </p>
         </div>
+
       </div>
 
        {/* Copyright Section */}

@@ -25,7 +25,7 @@ const Navbar = () => {
       <div className="flex gap-14 ml-80">
         <Link to="/" className="hover:underline">Home</Link>
         <a href="#" className="hover:underline">Boardings</a>
-        <a href="#" className="hover:underline">Contact</a>
+        <Link to="/contact" className="hover:underline">Contact</Link>
         <Link to="/about" className="hover:underline">About</Link>
       </div>
       <button className="bg-transparent text-black px-6 py-2.5 rounded-normal font-bold text-xl hover:bg-gray-100 border-2 border-black">
