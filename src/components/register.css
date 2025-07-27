@@ -1,11 +1,25 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
 body {
   font-family: Arial, sans-serif;
-  background: url('../assets/image.png') no-repeat center center/cover;
-  color: #fff;
-  height: 100%;
-  margin: 0;
+  background: url('../assets/image.png') no-repeat center center;
+  background-size: cover;
+  background-attachment: fixed;
+ color: #fff;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+/* Wrapper around the form */
+.register-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
 }
 
 .register-container {
@@ -22,7 +36,6 @@ body {
   color: #000;
   min-height: auto; /* Remove forced height if added */
 }
-
 
 .register-container h2 {
   text-align: center; /* ↑ Center heading */
@@ -60,14 +73,11 @@ body {
 
 .password-wrapper button {
   margin-left: 0.5rem;
-  padding: 0.4rem; /* ↓ Slightly reduced button padding */
+  padding: 0.1rem 0.5rem; 
   border: none;
   background: #ddd;
   cursor: pointer;
   border-radius: 4px;
-  font-size: 0.9rem;
-  /*background-color: #007BFF;*/
-  padding: 0.1rem 0; 
   font-size: 0.75rem;
 }
 
@@ -93,8 +103,15 @@ button[type="submit"] {
   width: 100%;
   background-color: #007BFF;
   color: white;
-  padding: 0.1rem 0; /* 🔽 Reduced vertical height */
-  font-size: 0.95rem; /* Optional: reduce font size if needed */
+  padding: 0.6rem 0; /* Increased for better usability */
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button[type="submit"]:hover {
+  background-color: #0056b3;
 }
 
 .success-message {
@@ -107,8 +124,6 @@ button[type="submit"] {
   text-align: center;
   border-radius: 4px;
 }
-
-
 
 /* ✅ Modal styles */
 .modal-overlay {
@@ -148,6 +163,3 @@ button[type="submit"] {
   list-style-type: disc; /* default bullet */
   padding-left: 1.2rem;
 }
-
-
-

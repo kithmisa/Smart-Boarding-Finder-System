@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaFacebook, FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
+import { FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
+
 
 const Footer = () => {
   const [rating, setRating] = useState(null);
@@ -14,7 +17,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="bg-black bg-opacity-60 text-white py-10 px-8 flex flex-col gap-10">
+    <footer className="bg-black bg-opacity-60 text-white px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start gap-10">
         {/* Branding, Socials & Rating */}
         <div>
@@ -64,19 +67,31 @@ const Footer = () => {
         <div>
           <h3 className="font-bold mb-2">Navigation</h3>
           <ul className="space-y-1">
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Boardings</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#">About</a></li>
+            <li><Link to="/" className="hover:underline">Home</Link></li>
+            <li><a href="/boarding" className="hover:underline">Boardings</a></li>
+            <li><Link to="/contact" className="hover:underline">Contact</Link></li>
+            <li><Link to="/about" className="hover:underline">About</Link></li>
           </ul>
         </div>
 
         {/* Contact */}
         <div>
           <h3 className="font-bold mb-2">Contact</h3>
-          <p className="flex items-center gap-2">📧 info@sbf.lk</p>
-          <p className="flex items-center gap-2 mt-2">📞 +94 712432145</p>
+          <p className="flex items-center gap-2">
+            <FaEnvelope className="text-black-500" />
+            info@sbf.lk
+          </p>
+          <p className="flex items-center gap-2 mt-2">
+            <FaPhoneAlt className="text-black-500" />
+            +94 712432145
+          </p>
         </div>
+
+      </div>
+
+       {/* Copyright Section */}
+      <div className="text-center text-sm mt-6 border-t border-gray-500 pt-4">
+        © 2025 Smart Boarding Finder. All rights reserved.
       </div>
     </footer>
   );
