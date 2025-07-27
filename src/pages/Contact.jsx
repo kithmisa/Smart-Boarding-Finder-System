@@ -26,7 +26,7 @@ const Contact = () => {
               <div className="border p-4 py-10 rounded bg-white/80 shadow transition hover:bg-blue-600 hover:text-white">
                 <FaMapMarkerAlt className="text-red-500 text-4xl mb-4 mx-auto" />
                 <h3 className="text-xl font-bold mb-2">Address</h3>
-                <p className="text-sm">University Of Ruhuna,<br />Matara.</p>
+                <p className="text-sm">University of Ruhuna,<br />Matara.</p>
               </div>
 
               {/* Phone */}
