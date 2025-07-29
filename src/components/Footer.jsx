@@ -89,10 +89,7 @@ const Footer = () => {
 
       </div>
 
-       {/* Copyright Section */}
-      <div className="text-center text-sm mt-6 border-t border-gray-500 pt-4">
-        © 2025 Smart Boarding Finder. All rights reserved.
-      </div>
+     
     </footer>
   );
 };
