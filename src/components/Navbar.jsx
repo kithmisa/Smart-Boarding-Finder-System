@@ -28,9 +28,13 @@ const Navbar = () => {
         <Link to="/contact" className="hover:underline">Contact</Link>
         <Link to="/about" className="hover:underline">About</Link>
       </div>
-      <button className="bg-transparent text-black px-6 py-2.5 rounded-normal font-bold text-xl hover:bg-gray-100 border-2 border-black">
-        Register
-      </button>
+      {/* Replace the button with: */}
+<Link
+  to="/register"
+  className="bg-transparent text-black px-6 py-2.5 rounded-normal font-bold text-xl hover:bg-gray-100 border-2 border-black"
+>
+  Register
+</Link>
     </nav>
   );
 };
