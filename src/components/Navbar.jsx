@@ -30,7 +30,7 @@ const Navbar = () => {
         <Link to="/about" className="hover:underline">About</Link>
       </div>
       {/* Register button navigates to /login */}
-      <Link to="/login">
+      <Link to="/register">
         <button className="bg-transparent text-black px-6 py-2.5 rounded-normal font-bold text-xl hover:bg-gray-100 border-2 border-black">
           Register
         </button>

@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import bgHero from '../assets/image.png';
 import './styles.css';
 
 function Search() {
@@ -10,11 +11,25 @@ function Search() {
     { icon: "📍", title: "Prime Locations", desc: "Properties located near University of Ruhuna with easy access to campus and amenities." },
     { icon: "📞", title: "24/7 Support", desc: "Our support team is always available to help you with any queries or concerns." },
     { icon: "⚡", title: "Quick Booking", desc: "Fast and easy booking process to secure your accommodation in minutes." },
-    { icon: "🛡️", title: "Safe & Secure", desc: "All properties meet safety standards with secure payment methods and legal agreements." }
+    { icon: "🛡️", title: "Safe & Secure", desc: "All properties meet safety standards with secure payment methods and legal agreements." },
+    { icon: "🚶", title: "Walkable Access", desc: "Most properties are within walking distance to university and bus stops." },
+{ icon: "🧑‍🤝‍🧑", title: "Friendly Hosts", desc: "Boarding owners are welcoming and supportive, making you feel at home." },
   ];
 
   return (
-    <div className="app-container">
+  <div
+  className="app-container"
+  style={{
+    backgroundImage: `url(${bgHero})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column'
+  }}
+>
+
       <main>
         <section className="search-section">
           {<h1>Where to stay near University of Ruhuna?</h1>}
