@@ -2,6 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import bgHero from '../assets/image.png';
+import { useNavigate } from 'react-router-dom';
 import {
   FaKey,
   FaUtensils,
@@ -19,6 +20,7 @@ import { MdLocationOn } from 'react-icons/md';
 import { FaUser, FaHome, FaUpload, FaUserFriends } from 'react-icons/fa';
 
 const Register = () => {
+    const navigate = useNavigate();
   return (
     <>
       <Navbar />
@@ -29,7 +31,7 @@ const Register = () => {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
-      >
+      > 
       <div className="pt-32 pb-20 px-6 bg-white/80 text-black min-h-screen">
         <div className="max-w-7xl mx-auto">
           {/* Section Titles */}
@@ -179,9 +181,13 @@ const Register = () => {
 
           {/* Submit Button */}
           <div className="text-center mt-8">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded font-bold">
-              SUBMIT
+           <button
+            onClick={() => navigate('/payment')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded font-bold"
+>
+            SUBMIT
             </button>
+
           </div>
         </div>
       </div>

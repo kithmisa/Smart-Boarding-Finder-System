@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Register from './pages/Register';
+import Payment from './pages/Payment';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/register" element={<Register />} />  {/* Add this */}
+        <Route path="/payment" element={<Payment />} />
       </Routes>
     </Router>
   );
