@@ -1,5 +1,5 @@
 // src/components/PerDayRoom.js
-import React from "react";
+/*import React from "react";
 import "./PerDayRoom.css";
 import roomImg from "../assets/room.jpg";
 
@@ -22,3 +22,4 @@ const PerDayRoom = () => {
 };
 
 export default PerDayRoom;
+*/

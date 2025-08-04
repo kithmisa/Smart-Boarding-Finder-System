@@ -1,107 +1,196 @@
-.boarding-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2rem;
-  padding: 2rem;
-  min-height: 100vh;
-
-  background-image: url('image (1).png');
+/* BACKGROUND FOR THE ENTIRE PAGE */
+.boarding-list-container {
+  position: relative;
+  background-image: url('image (1).png'); /* Replace with your own if needed */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  min-height: 100vh;
+  padding: 40px 20px;
+  backdrop-filter: blur(2px);
+  color: white;
 }
 
+.boarding-list-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+  z-index: 0;
+}
 
+.boarding-list-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* FILTER SECTION */
+.filter-section {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-group strong {
+  margin-right: 5px;
+  color: white;
+}
+
+/* FILTER BUTTON STYLES */
+.filter-group button {
+  padding: 8px 14px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.filter-group button.active {
+  background-color: #0056b3;
+}
+
+/* ROOM LIST LAYOUT */
+.room-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* BOARDING CARD */
 .boarding-card {
-  background-color: #ffffff;
-  color: #000;
-  padding: 20px;
-  border-radius: 10px;
-  width: 320px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transition: 0.3s;
+  background-color: white;
+  color: black;
+  width: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .boarding-card:hover {
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
-.boarding-img {
+/* IMAGE WRAPPER & PER DAY TAG */
+.image-wrapper {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.image-wrapper img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
 }
 
-.boarding-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-top: 15px;
-}
-
-.boarding-address {
-  font-size: 14px;
-  margin-top: 5px;
-}
-
-.boarding-status {
-  margin-top: 10px;
-  padding: 8px 16px;
-  color: #fff;
-  border: none;
+.per-day-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgb(210, 167, 10);
+  color: black;
+  padding: 4px 8px;
   border-radius: 6px;
   font-weight: bold;
-  cursor: default;
+  font-size: 0.85rem;
 }
 
-.boarding-status.available {
-  background-color: #22c55e;
+/* CARD DETAILS */
+.card-details {
+  padding: 16px;
 }
 
-.boarding-status.gone {
-  background-color: #ef4444;
+.card-details h3 {
+  margin: 0 0 8px;
 }
 
-.boarding-date {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #444;
+.card-details p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #333;
 }
 
-.button-group {
+/* STATUS BADGE */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.status-badge.available {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-badge.gone {
+  background-color: #dc3545;
+  color: white;
+}
+
+.available-date {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #dc3545; /* red shade for emphasis */
+}
+
+
+
+
+
+
+
+/*
+
+.filter-section {
   display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  margin-top: 10px;
 }
 
-.available {
-  background-color: #28a745;  /* green */
+.filter-group strong {
+  margin-right: 5px;
+}
+
+.filter-group button {
+  padding: 8px 14px;
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 5px;
-  font-weight: bold;
+  border-radius: 6px;
   cursor: pointer;
-  transition: 0.3s ease;
-}
-
-.available:hover {
-  background-color: #218838;
-}
-
-.gone {
-  background-color: #dc3545;  /* red */
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 5px;
   font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
-.gone:hover {
-  background-color: #c82333;
+.filter-group button.active {
+  background-color: #0056b3;
 }
-
+*/
