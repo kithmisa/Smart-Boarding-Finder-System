@@ -18,6 +18,7 @@ function Search() {
 
   return (
   <div
+  
   className="app-container"
   style={{
     backgroundImage: `url(${bgHero})`,
