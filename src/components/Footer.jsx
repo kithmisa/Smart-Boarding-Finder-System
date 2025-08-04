@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaFacebook, FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
+import { FaFacebook, FaWhatsapp , FaStar } from 'react-icons/fa';
 import { FaPhoneAlt, FaEnvelope } from 'react-icons/fa';
 
 
@@ -25,7 +25,6 @@ const Footer = () => {
           <p className="mt-2 text-sm">Smart boarding solutions for University of Ruhuna students.</p>
           <div className="flex gap-4 mt-4 text-2xl">
             <FaWhatsapp />
-            <FaInstagram />
             <FaFacebook />
           </div>
 
