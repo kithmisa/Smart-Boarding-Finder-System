@@ -42,7 +42,7 @@
 }
 
 .room-image {
-  width: 300px;
+  width: 400px;
   height: auto;
   border-radius: 8px;
   object-fit: cover;
@@ -151,6 +151,18 @@
   border-radius: 8px;
   box-shadow: 0 0 20px #000;
 }
+
+.available-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: default;
+  margin-bottom: 10px;
+}
+
 
 
 

@@ -14,7 +14,8 @@ const rooms = [
     title: "Single Room in Wellamadawa",
     address: "no 16 , main road , Wellamadawa",
     status: "Gone",
-    date: "Available from 2025-10-08",    // Format: YYYY-MM-DD
+    date: "Available from 2025-08-08", 
+    availableOn:"2025-08-08",  // Format: YYYY-MM-DD
     image: "/room2.jpeg",
     perDay: false, 
     longTerm: true,
@@ -42,7 +43,8 @@ const rooms = [
     title: "Shared Room in Meddawatha",
     address: "no 81, Pallimulla, Matara",
     status: "Gone",
-    date: "Available from 2025-08-10",  // Format: YYYY-MM-DD
+    date: "Available from 2025-09-03",  // Format: YYYY-MM-DD
+    availableOn:"2025-09-03",
     image: "/room5.jpeg",
     perDay: false, 
     longTerm: true,
@@ -73,6 +75,7 @@ const rooms = [
     address: "no 53,Main road,Meddawatha Matara",
     status: "Gone",
     date: "Available from 2025-10-31",
+    availableOn:"2025-10-31",
     image: "/room5.jpeg",
     perDay: true, 
     longTerm: true,
@@ -93,7 +96,8 @@ const rooms = [
     title: "Single Room in Wellamadawa",
     address: "no 16 , main road , Wellamadawa",
     status: "Gone",
-    date: "Available from 2025-09-05",    // Format: YYYY-MM-DD
+    date: "Available from 2025-09-05", 
+    availableOn:"2025-09-05",   // Format: YYYY-MM-DD
     image: "/room2.jpeg",
     perDay: false, 
     longTerm: true,
@@ -122,6 +126,7 @@ const rooms = [
     address: "no 81, Pallimulla, Matara",
     status: "Gone",
     date: "Available from 2025-08-05",  // Format: YYYY-MM-DD
+    availableOn:"2025-08-07",
     image: "/room5.jpeg",
     perDay: false, 
     longTerm: true,
@@ -152,6 +157,7 @@ const rooms = [
     address: "no 53,Main road,Meddawatha Matara",
     status: "Gone",
     date: "Available from 2025-09-01",
+    availableOn:"2025-09-01",
     image: "/room5.jpeg",
     perDay: true, 
     longTerm: true,

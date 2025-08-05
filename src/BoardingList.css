@@ -153,6 +153,27 @@
   color: #dc3545; /* red shade for emphasis */
 }
 
+.status-badge.available {
+  background-color: #28a745;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.status-badge.gone {
+  background-color: #dc3545;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.available-date {
+  font-size: 0.9em;
+  color: #f57c00;
+  margin-top: 4px;
+}
 
 
 
