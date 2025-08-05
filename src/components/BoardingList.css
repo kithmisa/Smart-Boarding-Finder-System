@@ -1,0 +1,142 @@
+/* Background image container */
+.boarding-bg-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Blurred background image */
+.boarding-bg-wrapper::before {
+
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: url('/image.png') no-repeat center center;
+  background-size: cover;
+  background-color: rgba(134, 124, 124, 0.171);
+  background-blend-mode: darken;
+  filter: blur(0px);
+  z-index: 0;
+  /*opacity: 0.5; /* to see if any overlay */
+}
+
+/* Semi-transparent white overlay */
+.boarding-bg-overlay {
+  position: relative;
+  background-color: rgb(228, 224, 224);
+  padding: 2rem;
+  margin-top: 100px; /* Push content below navbar */
+  z-index: 1;
+  margin: 100px 0 0 0;
+}
+
+/* Card grid 
+.boarding-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}*/
+
+
+
+.boarding-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 2rem;
+   margin-top: 80px; /* 👈 Push content below navbar */
+  
+  }
+
+.boarding-card {
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.boarding-card:hover {
+ 
+  transform: scale(1.02);
+}
+
+
+.card-image-wrapper {
+  height: 200px;
+  overflow: hidden;
+  
+}
+
+.card-image-wrapper img {
+  transition: transform 0.3s ease;
+}
+
+.boarding-card:hover .card-image-wrapper img {
+  transform: scale(1.03);
+}
+
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image {
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #eee;
+  color: #666;
+}
+
+.card-content {
+  padding: 1rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  margin-top: 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.status-badge.available {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.gone {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.view-more-button {
+  margin-top: 12px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #07941f;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: fit-content;
+}
+
+.view-more-button:hover {
+  background-color: #afdb11;
+  transform: scale(1.03);
+}

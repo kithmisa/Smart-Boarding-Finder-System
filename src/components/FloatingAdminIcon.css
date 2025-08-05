@@ -1,0 +1,19 @@
+.floating-admin-icon {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #333;
+  color: white;
+  padding: 0.8rem;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+
+.floating-admin-icon:hover {
+  background-color: #e7ddbf7e;
+  color: #1a1a1a;
+}
