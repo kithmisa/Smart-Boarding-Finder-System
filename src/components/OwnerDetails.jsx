@@ -42,9 +42,7 @@ const OwnerDetails = () => {
       }
 
       alert('✅ Registered successfully');
-
-      // Pass nic via state when navigating to HouseDetails
-      navigate('/register/house', { state: { nic } });
+      navigate('/register/house', { state: { ownerData: formData } });
     } catch (err) {
       alert('❌ Server error');
     }
@@ -65,9 +63,8 @@ const OwnerDetails = () => {
       }
 
       alert('✅ Login successful');
-
-      // Pass nic via state on login navigate as well
-      navigate('/register/house', { state: { nic: loginNIC } });
+      setShowLoginModal(false);
+      navigate('/register/house');
     } catch (err) {
       alert('❌ Server error');
     }
@@ -77,66 +74,69 @@ const OwnerDetails = () => {
     <>
       <Navbar />
 
-      {/* Background Wrapper */}
+      {/* Hero background wrapper */}
       <div
-        className="min-h-screen flex items-center justify-center px-4"
+        className="relative flex-grow px-8 pt-32 pb-16"
         style={{
           backgroundImage: `url(${bgHero})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        {/* Form Container */}
-        <div className="bg-white/90 backdrop-blur-sm p-10 rounded-xl shadow-xl w-full max-w-2xl mt-32">
-          <h2 className="text-2xl text-black font-bold flex items-center gap-2 mb-6">
-            <FaUser /> Owner Details
-          </h2>
-          <div className="space-y-4">
-            <input
-              name="name"
-              type="text"
-              placeholder="Name"
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
-            <input
-              name="nic"
-              type="text"
-              placeholder="NIC"
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
-            <input
-              name="contact"
-              type="text"
-              placeholder="Contact"
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
-            />
+        {/* Form section */}
+        <div className="pt-32 pb-20 px-6 bg-white/50 min-h-screen">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-black">
+              <FaUser /> Owner Details
+            </h2>
+            <div className="h-1 w-20 bg-green-600 mt-1 mb-4 rounded-full" />
+            <div className="space-y-4">
+              <input
+                name="name"
+                type="text"
+                placeholder="Name"
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded text-black placeholder-gray-500"
+              />
+              <input
+                name="email"
+                type="email"
+                placeholder="Email"
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded text-black placeholder-gray-500"
+              />
+              <input
+                name="nic"
+                type="text"
+                placeholder="NIC"
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded text-black placeholder-gray-500"
+              />
+              <input
+                name="contact"
+                type="text"
+                placeholder="Contact"
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded text-black placeholder-gray-500"
+              />
 
-            <button
-              onClick={handleRegister}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded font-bold mt-4"
-            >
-              Register
-            </button>
-
-            <p className="mt-4 text-sm text-black">
-              Already registered?{' '}
-              <span
-                onClick={() => setShowLoginModal(true)}
-                className="text-blue-700 hover:underline cursor-pointer font-semibold"
+              <button
+                onClick={handleRegister}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded font-bold mt-4"
               >
-                Login
-              </span>
-            </p>
+                Register
+              </button>
+
+              <p className="mt-4 text-sm text-black">
+                Already registered?{' '}
+                <span
+                  onClick={() => setShowLoginModal(true)}
+                  className="text-blue-700 hover:underline cursor-pointer font-semibold"
+                >
+                  Login
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ const OwnerDetails = () => {
               placeholder="Enter NIC"
               value={loginNIC}
               onChange={(e) => setLoginNIC(e.target.value)}
-              className="w-full border px-4 py-2 mb-4 rounded"
+              className="w-full border px-4 py-2 mb-4 rounded text-black placeholder-gray-500"
             />
             <button
               onClick={handleLogin}

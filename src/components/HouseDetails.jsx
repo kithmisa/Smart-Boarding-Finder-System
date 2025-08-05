@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -6,6 +7,7 @@ import {
 } from 'react-icons/fa';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import bgHero from '../assets/image.png';
 
 const HouseDetails = () => {
   const { state } = useLocation();
@@ -129,37 +131,46 @@ const HouseDetails = () => {
   return (
     <>
       <Navbar />
-      <div className="bg-white shadow-md py-4 px-6 flex justify-center gap-6 max-w-7xl mx-auto mt-24 rounded">
+      <div
+        className="relative flex-grow px-8 pt-32 pb-16 text-white"
+        style={{
+          backgroundImage: `url(${bgHero})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+      <div className="shadow-md py-4 px-6 flex justify-center gap-6 max-w-7xl mx-auto mt-24 rounded">
         <button
           onClick={() => navigate('/owner/add-property')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold shadow"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-6 rounded-lg font-semibold shadow"
         >
           Add Property
         </button>
 
         <button
           onClick={() => navigate('/owner/listings')}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold shadow"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-6 rounded-lg font-semibold shadow"
         >
           View My Listings
         </button>
 
         <button
           onClick={() => navigate('/owner/edit-contact')}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg font-semibold shadow"
+          className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-6 rounded-lg font-semibold shadow"
         >
           Edit Contact Details
         </button>
       </div>
 
-      <div className="pt-32 pb-20 px-6 bg-white/90 min-h-screen">
+      <div className="pt-32 pb-20 px-6 bg-white/50 min-h-screen">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left Side - Main Form */}
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
+            <h2 className="text-xl text-black font-bold flex items-center gap-2">
               <FaHome /> House Details
             </h2>
-            <div className="space-y-4 mt-4">
+            <div className="h-1 w-20 bg-green-600 mt-1 mb-4 rounded-full" />
+            <div className="text-black space-y-4 mt-4">
               <input
                 name="title"
                 placeholder="Title"
@@ -335,8 +346,8 @@ const HouseDetails = () => {
 
           {/* Right Side - Short Term Rental */}
           <div>
-            <h2 className="text-lg font-bold mb-2">Short-Term Availability</h2>
-            <label className="flex items-center gap-2 mb-4">
+            <h2 className="text-lg text-black font-bold mb-2">Short-Term Availability</h2>
+            <label className="flex items-center gap-2 mb-4 text-black">
               Does your property support short-term rentals?
               <input
                 type="checkbox"
@@ -356,8 +367,8 @@ const HouseDetails = () => {
                   className="w-full border px-4 py-2 rounded"
                 />
 
-                <h3 className="font-semibold">Short Term Features:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <h3 className="font-semibold text-black">Short Term Features:</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm text-black">
                   {[
                     'Meals Provided',
                     'On-site Parking',
@@ -399,6 +410,7 @@ const HouseDetails = () => {
             Submit
           </button>
         </div>
+      </div>
       </div>
     </>
   );
