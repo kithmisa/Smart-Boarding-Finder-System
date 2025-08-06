@@ -1,0 +1,50 @@
+
+
+
+.book-now-container {
+  background-image: url('image (1).png'); /* or use relative path */
+  background-size: cover;
+  background-position: center;
+  min-height: 100%;
+  padding: 100%;
+}
+
+
+
+.book-now-container {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+  background: #f7f7f7;
+  border-radius: 10px;
+}
+
+.book-now-container label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+.book-now-container input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.total-price {
+  margin-top: 20px;
+  font-size: 18px;
+  color: #333;
+}
+
+.pay-now-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

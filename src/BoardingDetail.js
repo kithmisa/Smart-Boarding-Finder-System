@@ -875,6 +875,9 @@ export default function BoardingDetail() {
   const daysLeft = availableDate ? Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) : null;
   const isFutureDate = daysLeft > 0;
   const isAvailableNow = daysLeft !== null && daysLeft <= 0;
+  
+const boarding = roomsData.find((room) => room.id === parseInt(id));
+
 
   const handleSubmitReview = () => {
     if (reviewText.trim() !== "") {
@@ -915,12 +918,14 @@ export default function BoardingDetail() {
             </div>
           )}
 
+          
           <button
-            className="book-btn"
-            onClick={() => alert("Redirecting to payment")}
-          >
-            Book now
-          </button>
+  onClick={() => navigate(`/booknow/${boarding.id}`)}
+  className="book-now-button"
+>
+  Book Now
+</button>
+
 
           <div className="owner-contact">
             📞 To contact Owner<br />
@@ -935,14 +940,14 @@ export default function BoardingDetail() {
               071-*******
               {showPopup && (
                 <div className="popup-message">
-                  Please Register to view more details
+                  Please Register to view contact details
                 </div>
               )}
             </span>
           </div>
 
           <div className="features">
-            <h3>Features</h3>
+            <h3>Features & Facilities </h3>
             <ul>
               <li>✅ Seperate Study Area </li>
               <li>✅ Separate Sleeping Area</li>
@@ -969,7 +974,7 @@ export default function BoardingDetail() {
               <img
                 src={"/studyarea3.jpg"}
                 alt="Study Area"
-                onClick={() => setPreviewImage("/studyarea.jpg")}
+                onClick={() => setPreviewImage("/studyarea3.jpg")}
               />
             </div>
           </div>
@@ -979,7 +984,7 @@ export default function BoardingDetail() {
       {/* Booking Visit Section */}
       <div className="visit-booking-section">
         <h3>Book a Visit Date</h3>
-        <p>Select a future date to visit the boarding place.</p>
+        <p>Book a date to visit the boarding place.</p>
         <input
           type="date"
           min={new Date().toISOString().split("T")[0]}
