@@ -17,8 +17,7 @@
   background-image: url('image (1).png'); /* Replace with a blurred version or same image */
   background-size: cover;
   background-position: center;
-  filter: blur(2px);
-  opacity: 0.4;
+
   z-index: -1;
 }
 
@@ -35,7 +34,7 @@
 .room-card {
   display: flex;
   gap: 30px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   padding: 20px;

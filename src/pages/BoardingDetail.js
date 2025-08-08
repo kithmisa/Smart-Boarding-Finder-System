@@ -851,6 +851,8 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import roomsData from "./Boardingdata";
 import "./BoardingDetail.css";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function BoardingDetail() {
   const { id } = useParams();
@@ -891,7 +893,10 @@ const boarding = roomsData.find((room) => room.id === parseInt(id));
   };
 
   return (
+    <>
     <div className="detail-container">
+      <Navbar/>
+          <div className="py-12"></div>
       <button className="back-btn" onClick={() => navigate(-1)}>
         ← Back
       </button>
@@ -979,39 +984,40 @@ const boarding = roomsData.find((room) => room.id === parseInt(id));
             </div>
           </div>
         </div>
-      </div>
+      
 
-      {/* Booking Visit Section */}
-      <div className="visit-booking-section">
-        <h3>Book a Visit Date</h3>
-        <p>Book a date to visit the boarding place.</p>
-        <input
-          type="date"
-          min={new Date().toISOString().split("T")[0]}
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="date-picker"
-        />
-        <button
-          onClick={() => {
-            if (selectedDate) {
-              alert(`Visit booked for ${selectedDate}`);
-            } else {
-              alert("Please select a date first.");
-            }
-          }}
-          style={{
-            marginTop: "10px",
-            backgroundColor: "#4CAF50",
-            color: "white",
-            padding: "8px 16px",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Book Visit
-        </button>
+        {/* Booking Visit Section */}
+        <div className="visit-booking-section">
+          <h3>Book a Visit Date</h3>
+          <p>Book a date to visit the boarding place.</p>
+          <input
+            type="date"
+            min={new Date().toISOString().split("T")[0]}
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="date-picker"
+          />
+          <button
+            onClick={() => {
+              if (selectedDate) {
+                alert(`Visit booked for ${selectedDate}`);
+              } else {
+                alert("Please select a date first.");
+              }
+            }}
+            style={{
+              marginTop: "10px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Book Visit
+          </button>
+        </div>
       </div>
 
       <div className="review-section">
@@ -1080,5 +1086,7 @@ const boarding = roomsData.find((room) => room.id === parseInt(id));
         </div>
       )}
     </div>
+    <Footer/>
+    </>
   );
 }

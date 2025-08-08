@@ -103,6 +103,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import roomsData from "./Boardingdata";
 import "./BoardingList.css";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 export default function BoardingList() {
   const [typeFilter, setTypeFilter] = useState("all");
@@ -121,9 +123,11 @@ export default function BoardingList() {
   });
 
   return (
-    <div className="boarding-list-container">
-      <h2>Smart Boarding Finder</h2>
+    <>
+    <Navbar/>
 
+    <div className="boarding-list-container">
+          <div className="py-12"></div>
       <div className="filter-section">
         <div className="filter-group">
           <strong>Type:</strong>
@@ -199,6 +203,8 @@ export default function BoardingList() {
         })}
       </div>
     </div>
+    <Footer/> 
+    </>
   );
 }
 
