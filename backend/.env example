@@ -1,0 +1,10 @@
+#Email Configuration
+EMAIL_USER=email_address
+EMAIL_PASS=email_pass
+
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=12345678
+DB_NAME=smartbo
+DB_PORT=3306
