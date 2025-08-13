@@ -1,0 +1,117 @@
+CREATE database smartbo;
+
+USE smartbo;
+
+
+
+CREATE TABLE admins (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE owner (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    nic VARCHAR(20) NOT NULL UNIQUE,
+    contact VARCHAR(20) NOT NULL
+);
+
+
+CREATE TABLE owner_bank_details (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    owner_id INT NOT NULL,
+    account_holder_name VARCHAR(100) NOT NULL,
+    account_type ENUM('savings', 'current', 'fixed_deposit') NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    branch_name VARCHAR(100) NOT NULL,
+    branch_code VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES owner(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE houses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    roomType VARCHAR(50) NOT NULL,
+    genderAllowed VARCHAR(50) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    address VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    highlights TEXT,
+    shortTerm TINYINT(1) DEFAULT 0,
+    pricePerNight DECIMAL(10,2),
+    description TEXT,
+    features TEXT,
+    shortFeatures TEXT,
+    images TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    availabilityStatus VARCHAR(20) DEFAULT 'available',
+    availableDate DATE,
+    owner_id INT NOT NULL,
+    bookingStatus VARCHAR(50) DEFAULT 'available',
+    status VARCHAR(20) DEFAULT 'pending',
+    confirmed TINYINT(1) DEFAULT 0,
+    confirmed_at TIMESTAMP NULL,
+    rejection_reason TEXT,
+    approved_by INT,
+    FOREIGN KEY (owner_id) REFERENCES owner(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL
+);
+
+
+CREATE TABLE contact_messages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    comments TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE INDEX idx_houses_owner_id ON houses(owner_id);
+CREATE INDEX idx_houses_status ON houses(status);
+CREATE INDEX idx_houses_availability ON houses(availabilityStatus);
+CREATE INDEX idx_houses_city ON houses(city);
+CREATE INDEX idx_houses_room_type ON houses(roomType);
+CREATE INDEX idx_owner_bank_details_owner_id ON owner_bank_details(owner_id);
+CREATE INDEX idx_contact_messages_created_at ON contact_messages(created_at);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_owner_email ON owner(email);
+CREATE INDEX idx_owner_nic ON owner(nic);
+CREATE TABLE contact_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  title VARCHAR(150) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE admins (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL
+);
+INSERT INTO admins (username, password) VALUES ('admin1', 'admin123');
