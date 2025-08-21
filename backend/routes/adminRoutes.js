@@ -11,11 +11,17 @@ const {
   deleteOwner,
   deleteComment,
   deleteHouse,
-  replyToComment
+  replyToComment,
+  markAllMessagesAsRead
 } = require('../controllers/adminController');
 
 // Admin login
 router.post('/login', loginAdmin);
+
+// Test route to verify admin routes are working
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Admin routes are working!' });
+});
 
 // Get all users
 router.get('/users', getAllUsers);
@@ -296,13 +302,16 @@ router.put('/houses/:id/reject', async (req, res) => {
   }
 });
 
+// Reply to comment
+router.post('/comments/:id/reply', replyToComment);
+
+// Mark all messages as read - IMPORTANT: This must come BEFORE the catch-all routes
+router.put('/comments/mark-all-read', markAllMessagesAsRead);
+
 // Delete routes
 router.delete('/users/:id', deleteUser);
 router.delete('/owners/:id', deleteOwner);
 router.delete('/comments/:id', deleteComment);
 router.delete('/houses/:id', deleteHouse);
-
-// Reply to comment
-router.post('/comments/:id/reply', replyToComment);
 
 module.exports = router;

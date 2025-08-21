@@ -1,6 +1,220 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Users, Home, User, MessageCircle, Settings, Menu, X, Reply, Eye, Trash2, CheckCircle, Clock, Building, MapPin, Calendar, Star, Image, ExternalLink } from 'lucide-react';
 import bgHero from '../assets/image.png';
+
+
+const ReplyModal = ({ 
+  isOpen, 
+  onClose, 
+  selectedComment, 
+  onReply,
+  replyMessage,
+  setReplyMessage 
+}) => {
+  if (!isOpen) return null;
+
+  const handleReply = () => {
+    if (!selectedComment || !replyMessage.trim()) return;
+    onReply(); // Call the parent's handleReply
+  };
+
+  const handleClose = () => {
+    onClose(); // Call the parent's close handler
+  };
+
+
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">
+            Reply to Contact Message
+          </h3>
+          <button 
+            onClick={() => {
+            
+              setReplyMessage('');
+           
+              onClose();
+            }} 
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        {selectedComment && (
+          <div className="mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <h4 className="font-semibold text-gray-800 mb-3">Original Message Details:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">From:</span>
+                  <p className="text-gray-800">{selectedComment.name || 'Anonymous'}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Email:</span>
+                  <p className="text-gray-800">{selectedComment.email}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-medium text-gray-600">Subject:</span>
+                  <p className="text-gray-800">{selectedComment.title}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="font-medium text-gray-600">Message:</span>
+                  <p className="text-gray-800 mt-1 bg-white p-3 rounded border">{selectedComment.comments}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Received:</span>
+                  <p className="text-gray-800">
+                    {selectedComment.created_at ? new Date(selectedComment.created_at).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Show existing reply if any */}
+              {selectedComment.reply && (
+                <div className="mt-4 bg-white p-3 rounded border border-green-200">
+                  <h5 className="font-medium text-green-800 mb-2">Previous Reply:</h5>
+                  <p className="text-sm text-green-700 whitespace-pre-wrap">{selectedComment.reply}</p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Sent: {selectedComment.replied_at ? new Date(selectedComment.replied_at).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+           
+              
+              
+             
+              
+              
+              
+              
+              {/* Main Reply Textarea - Native HTML with inline styles only 
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Reply:
+                </label>
+                
+                <textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your reply to the user..."
+                  style={{
+                    width: '100%',
+                    height: '128px',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                  direction: 'ltr',
+                    textAlign: 'left',
+                    unicodeBidi: 'normal',
+                    writingMode: 'horizontal-tb',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                    resize: 'none',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                
+                <p className="text-xs text-gray-500 mt-1">
+                Characters: {replyMessage.length}
+                </p>
+              </div>*/}
+
+
+<div className="mb-4">
+<label htmlFor="reply-textarea" className="block text-sm font-medium text-gray-700 mb-2">
+  Your Reply:
+</label>
+
+<textarea
+  id="reply-textarea"
+  value={replyMessage}
+  onChange={(e) => {
+    console.log('Textarea changed:', e.target.value);
+    setReplyMessage(e.target.value);
+  }}
+  placeholder="Type your reply to the user..."
+  className="w-full h-32 p-3 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+  style={{
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    lineHeight: '1.5'
+  }}
+/>
+
+<div className="mt-2 flex justify-between items-center">
+  <p className="text-xs text-gray-500">
+    Characters: {replyMessage.length}
+  </p>
+</div>
+</div>
+              
+            
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <div className="text-blue-600 mt-0.5">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Email Notification</p>
+                  <p>Your reply will be sent via email to <strong>{selectedComment.email}</strong> and stored in our system.</p>
+                  {selectedComment.reply && (
+                    <p className="text-blue-700 mt-1">
+                      <strong>Note:</strong> This will be sent as an additional follow-up email.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex gap-2">
+          <button
+            onClick={handleReply}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!replyMessage.trim()}
+          >
+            <Reply size={16} />
+            {selectedComment?.reply ? 'Send Additional Reply' : 'Send Reply & Email'}
+          </button>
+          <button
+            onClick={() => {
+             
+              setReplyMessage('');
+             onClose();
+            }}
+            className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+
+
 
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -18,8 +232,14 @@ const AdminDashboard = () => {
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [replyModalOpen, setReplyModalOpen] = useState(false);
   const [houseDetailsModalOpen, setHouseDetailsModalOpen] = useState(false);
-  const [selectedComment, setSelectedComment] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
+  const [testMessage, setTestMessage] = useState(''); // Test state
+  const [selectedComment, setSelectedComment] = useState(null);
+  const [messageFilter, setMessageFilter] = useState('all'); // 'all', 'unread', 'replied'
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Use ref for direct DOM access
+  const replyTextareaRef = useRef(null);
 
   // Fetch data based on active section
   useEffect(() => {
@@ -221,30 +441,107 @@ const AdminDashboard = () => {
   };
 
   const handleReply = async () => {
-    if (!replyMessage.trim()) return;
+    console.log('handleReply called with:', { selectedComment, replyMessage }); // Debug log
+    
+    if (!selectedComment || !replyMessage.trim()) return;
     
     try {
       const res = await fetch(`http://localhost:5000/api/admin/comments/${selectedComment.id}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reply: replyMessage })
+        body: JSON.stringify({
+          reply: replyMessage,
+        })
       });
       
-      if (!res.ok) throw new Error('Reply failed');
+      if (!res.ok) throw new Error('Failed to send reply');
       
-      setComments(comments.map(c => 
-        c.id === selectedComment.id 
-          ? { ...c, reply: replyMessage, replied: true }
+      // Update local state
+      setComments(comments.map(c =>
+        c.id === selectedComment.id
+          ? {
+              ...c,
+              reply: c.reply ? `${c.reply}\n\n--- Additional Reply ---\n${replyMessage}` : replyMessage,
+              replied: true,
+              replied_at: new Date().toISOString()
+            }
           : c
       ));
       
       setReplyModalOpen(false);
       setReplyMessage('');
       setSelectedComment(null);
+      alert('Reply sent successfully! Email notification delivered.');
     } catch (err) {
-      alert('Reply failed: ' + err.message);
+      alert('Failed to send reply: ' + err.message);
     }
   };
+
+  const handleMarkAllAsRead = async () => {
+    if (!window.confirm('Mark all unread messages as read?')) return;
+    
+    try {
+      const unreadIds = comments.filter(c => !c.replied).map(c => c.id);
+      if (unreadIds.length === 0) {
+        alert('No unread messages to mark as read.');
+        return;
+      }
+      
+      // Update local state immediately for better UX
+      setComments(comments.map(c => 
+        !c.replied ? { ...c, replied: true, replied_at: new Date().toISOString() } : c
+      ));
+      
+      // Send batch update to backend
+      const res = await fetch('http://localhost:5000/api/admin/comments/mark-all-read', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageIds: unreadIds })
+      });
+      
+      if (!res.ok) throw new Error('Failed to mark messages as read');
+      
+      alert(`Marked ${unreadIds.length} messages as read successfully!`);
+    } catch (err) {
+      alert('Failed to mark messages as read: ' + err.message);
+      // Revert local state on error
+      fetchData();
+    }
+  };
+
+  // Filter and search messages
+  const getFilteredMessages = () => {
+    let filtered = comments;
+    
+    // Apply status filter
+    switch (messageFilter) {
+      case 'unread':
+        filtered = filtered.filter(c => !c.replied);
+        break;
+      case 'replied':
+        filtered = filtered.filter(c => c.replied);
+        break;
+      default:
+        break;
+    }
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.name?.toLowerCase().includes(term) ||
+        c.email?.toLowerCase().includes(term) ||
+        c.title?.toLowerCase().includes(term) ||
+        c.comments?.toLowerCase().includes(term)
+      );
+    }
+    
+    return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  };
+
+  const filteredMessages = getFilteredMessages();
+  const unreadCount = comments.filter(c => !c.replied).length;
+  const repliedCount = comments.filter(c => c.replied).length;
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Settings },
@@ -512,44 +809,6 @@ const AdminDashboard = () => {
     </div>
   );
 
-  const ReplyModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Reply to Comment</h3>
-          <button onClick={() => setReplyModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">Original Comment:</p>
-          <div className="bg-gray-100 p-3 rounded text-sm">
-            {selectedComment?.message}
-          </div>
-        </div>
-        <textarea
-          value={replyMessage}
-          onChange={(e) => setReplyMessage(e.target.value)}
-          placeholder="Type your reply..."
-          className="w-full border rounded p-3 mb-4 h-24 resize-none"
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={handleReply}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Send Reply
-          </button>
-          <button
-            onClick={() => setReplyModalOpen(false)}
-            className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderDashboard = () => {
     const pendingHouses = houses.filter(h => h.status === 'pending' || !h.status).length;
@@ -558,85 +817,100 @@ const AdminDashboard = () => {
     const pendingBoardings = boardingHouses.filter(b => b.status === 'pending' || !b.confirmed).length;
     const confirmedBoardings = boardingHouses.filter(b => b.status === 'confirmed' || b.confirmed).length;
     
+    // Contact message statistics
+    const totalMessages = comments.length;
+    const repliedMessages = comments.filter(c => c.replied).length;
+    const unreadMessages = totalMessages - repliedMessages;
+    
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-blue-600">{users.length}</p>
+      <div className="space-y-6">
+        {/* Main Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold text-blue-600">{users.length}</p>
+              </div>
+              <Users className="text-blue-500" size={32} />
             </div>
-            <Users className="text-blue-500" size={32} />
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Owners</p>
+                <p className="text-2xl font-bold text-green-600">{owners.length}</p>
+              </div>
+              <User className="text-green-500" size={32} />
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Houses</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingHouses}</p>
+              </div>
+              <Clock className="text-yellow-500" size={32} />
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Approved Houses</p>
+                <p className="text-2xl font-bold text-green-600">{approvedHouses}</p>
+              </div>
+              <CheckCircle className="text-green-500" size={32} />
+            </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Owners</p>
-              <p className="text-2xl font-bold text-green-600">{owners.length}</p>
+        {/* Secondary Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Boardings</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingBoardings}</p>
+              </div>
+              <Building className="text-yellow-500" size={32} />
             </div>
-            <User className="text-green-500" size={32} />
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Pending Houses</p>
-              <p className="text-2xl font-bold text-yellow-600">{pendingHouses}</p>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Confirmed Boardings</p>
+                <p className="text-2xl font-bold text-green-600">{confirmedBoardings}</p>
+              </div>
+              <CheckCircle className="text-green-500" size={32} />
             </div>
-            <Clock className="text-yellow-500" size={32} />
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Approved Houses</p>
-              <p className="text-2xl font-bold text-green-600">{approvedHouses}</p>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Messages</p>
+                <p className="text-2xl font-bold text-orange-600">{totalMessages}</p>
+                <div className="flex gap-2 mt-1 text-xs">
+                  <span className="text-red-600">● {unreadCount} unread</span>
+                  <span className="text-green-600">● {repliedCount} replied</span>
+                </div>
+              </div>
+              <MessageCircle className="text-orange-500" size={32} />
             </div>
-            <CheckCircle className="text-green-500" size={32} />
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Pending Boardings</p>
-              <p className="text-2xl font-bold text-yellow-600">{pendingBoardings}</p>
-            </div>
-            <Building className="text-yellow-500" size={32} />
-          </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Confirmed Boardings</p>
-              <p className="text-2xl font-bold text-green-600">{confirmedBoardings}</p>
-            </div>
-            <CheckCircle className="text-green-500" size={32} />
-          </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Comments</p>
-              <p className="text-2xl font-bold text-orange-600">{comments.length}</p>
-            </div>
-            <MessageCircle className="text-orange-500" size={32} />
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Rejected Houses</p>
-              <p className="text-2xl font-bold text-red-600">{rejectedHouses}</p>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Rejected Houses</p>
+                <p className="text-2xl font-bold text-red-600">{rejectedHouses}</p>
+              </div>
+              <X className="text-red-500" size={32} />
             </div>
-            <X className="text-red-500" size={32} />
           </div>
         </div>
       </div>
@@ -1135,51 +1409,211 @@ const AdminDashboard = () => {
 
   const renderComments = () => {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Header with Stats and Actions */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold">Comments & Replies</h3>
-          </div>
-          <div className="p-6 space-y-4">
-            {comments.map(comment => (
-              <div key={comment.id} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600">
-                      <strong>User ID:</strong> {comment.user_id || 'Anonymous'}
-                    </p>
-                    <p className="mt-2">{comment.message}</p>
-                    {comment.reply && (
-                      <div className="mt-3 bg-blue-50 p-3 rounded border-l-4 border-blue-400">
-                        <p className="text-sm text-blue-800">
-                          <strong>Admin Reply:</strong> {comment.reply}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">Contact Messages & Replies</h3>
+                <p className="text-sm text-gray-600 mt-1">Manage and respond to user inquiries from the contact form</p>
+              </div>
+              
+              {/* Stats */}
+              <div className="flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className="text-gray-600">Total: {comments.length}</span>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => {
-                      setSelectedComment(comment);
-                      setReplyModalOpen(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-                    disabled={comment.replied}
-                  >
-                    <Reply size={14} />
-                    {comment.replied ? 'Replied' : 'Reply'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete('comments', comment.id)}
-                    className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm"
-                  >
-                    <Trash2 size={14} />
-                    Delete
-                  </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-gray-600">Unread: {unreadCount}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-600">Replied: {repliedCount}</span>
                 </div>
               </div>
-            ))}
+            </div>
+          </div>
+          
+          {/* Filters and Search */}
+          <div className="px-6 py-4 bg-gray-50 border-b">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Filter Tabs */}
+              <div className="flex border rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setMessageFilter('all')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    messageFilter === 'all'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  All Messages
+                </button>
+                <button
+                  onClick={() => setMessageFilter('unread')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    messageFilter === 'unread'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Unread ({unreadCount})
+                </button>
+                <button
+                  onClick={() => setMessageFilter('replied')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    messageFilter === 'replied'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Replied ({repliedCount})
+                </button>
+              </div>
+              
+              {/* Search */}
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search messages..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Mark All Read
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setMessageFilter('all');
+                    setSearchTerm('');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Messages List */}
+          <div className="p-6">
+            {filteredMessages.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchTerm ? 'No messages found' : 'No messages yet'}
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm 
+                    ? `No messages match "${searchTerm}"` 
+                    : 'Contact form submissions will appear here'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredMessages.map(comment => (
+                  <div 
+                    key={comment.id} 
+                    className={`border rounded-lg p-4 transition-all ${
+                      comment.replied 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-red-50 border-red-200'
+                    }`}
+                  >
+                    {/* Message Header */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            comment.replied 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {comment.replied ? 'Replied' : 'Unread'}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {comment.name || 'Anonymous'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {comment.email}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {comment.created_at ? new Date(comment.created_at).toLocaleString() : 'N/A'}
+                          </div>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <h4 className="font-semibold text-gray-800 mb-1">{comment.title}</h4>
+                          <p className="text-gray-700">{comment.comments}</p>
+                        </div>
+                        
+                        {comment.reply && (
+                          <div className="mt-3 bg-white p-3 rounded border border-green-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-green-800">Admin Reply:</span>
+                              <span className="text-xs text-green-600">
+                                {comment.replied_at ? new Date(comment.replied_at).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-green-700">{comment.reply}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => {
+                          setSelectedComment(comment);
+                          setReplyModalOpen(true);
+                        }}
+                        className="bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1 text-sm px-3 py-1 rounded transition-colors"
+                      >
+                        <Reply size={14} />
+                        Reply Again
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDelete('comments', comment.id)}
+                        className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm px-3 py-1 rounded hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1229,11 +1663,13 @@ const AdminDashboard = () => {
         <nav className="mt-8">
           {sidebarItems.map(item => {
             const Icon = item.icon;
+            const unreadCount = item.id === 'comments' ? comments.filter(c => !c.replied).length : 0;
+            
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center px-4 py-3 text-left hover:bg-blue-50 transition-colors ${
+                className={`w-full flex items-center px-4 py-3 text-left hover:bg-blue-50 transition-colors relative ${
                   activeSection === item.id ? 'bg-blue-100 border-r-2 border-blue-500' : ''
                 }`}
               >
@@ -1243,6 +1679,15 @@ const AdminDashboard = () => {
                 }`}>
                   {item.label}
                 </span>
+                
+                {/* Notification badge for unread messages */}
+                {unreadCount > 0 && (
+                  <div className={`ml-auto ${sidebarOpen ? 'block' : 'hidden'}`}>
+                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {unreadCount}
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -1269,7 +1714,21 @@ const AdminDashboard = () => {
       
       {houseDetailsModalOpen && <HouseDetailsModal />}
       
-      {replyModalOpen && <ReplyModal />}
+      
+      {replyModalOpen && (
+  <ReplyModal 
+    isOpen={replyModalOpen}
+    onClose={() => {
+      setReplyModalOpen(false);
+      setReplyMessage('');
+      setSelectedComment(null);
+    }}
+    selectedComment={selectedComment}
+    onReply={handleReply}
+    replyMessage={replyMessage}
+    setReplyMessage={setReplyMessage}
+  />
+)}
     </div>
   );
 };
