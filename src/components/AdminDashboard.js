@@ -1599,7 +1599,7 @@ const AdminDashboard = () => {
                         className="bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-1 text-sm px-3 py-1 rounded transition-colors"
                       >
                         <Reply size={14} />
-                        Reply Again
+                        Reply 
                       </button>
                       
                       <button
