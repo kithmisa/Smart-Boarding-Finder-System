@@ -5,17 +5,15 @@
   min-height: 100vh;
  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
   padding: 0 0;
-   background-image: url('/image.png'); 
-    background-size: cover;
+  background-image: url('/image.png'); 
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
   position: relative;
- 
-    backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
   color: rgba(235, 228, 228, 0.596);
 }
-
 
 .boarding-bg-wrapper::before {
   content: '';
@@ -56,8 +54,6 @@
   opacity: 0.9;
 }
 
-
-
 .filter-container {
   display: flex;
   justify-content: center;
@@ -65,38 +61,8 @@
   margin-bottom: 30px;
   flex-wrap: wrap;
 }
-/*
- ✅ NEW: Filter button styles 
-.filter-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 12px 20px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
 
-.filter-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.filter-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #1f2937;
-  border-color: rgba(255, 255, 255, 0.9);
-  text-shadow: none;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-}
-
-* Professional Filter button styles */
+/* Professional Filter button styles */
 .filter-btn {
   background: linear-gradient(135deg, #fef7ff, #f3e8ff);
   color: #15072e;
@@ -144,8 +110,6 @@
   transform: translateY(-2px);
 }
 
-
-
 /* ✅ UPDATED: Grid container for 4 cards per row */
 .boarding-grid-container {
   display: grid;
@@ -170,12 +134,11 @@
 }
 
 .boarding-card:hover {
-/*  transform: translateY(-5px);*/
   transform: scale(1.03);
   box-shadow: 0 15px 40px rgba(88, 83, 83, 0.925);
 }
 
-/* ✅ NEW: Inline availability badge between location and price */
+/* ✅ NEW: Inline availability badge */
 .card-availability-badge-inline {
   margin: 10px 0;
   display: flex;
@@ -193,19 +156,18 @@
 }
 
 .card-availability-badge-inline .availability-label.short-term {
- /* background: #067e16ce; /* Green background */
   background: linear-gradient(135deg, #126d25e5, #0b5e4ca4);
 }
 
 .card-availability-badge-inline .availability-label.long-term {
-   background: linear-gradient(135deg, #07b43ee5, #0b8630d8);
+  background: linear-gradient(135deg, #07b43ee5, #0b8630d8);
 }
 
 /* Image wrapper - decreased height */
 .card-image-wrapper {
   position: relative;
   overflow: hidden;
-  height: 180px; /* ✅ Decreased from 200px to 180px */
+  height: 180px;
 }
 
 .card-image {
@@ -230,15 +192,12 @@
   font-size: 1rem;
 }
 
-/* ✅ REMOVED: Verified badge */
-
-/* ✅ NEW: Short-term badge - positioned in top right of image */
+/* ✅ NEW: Short-term badge */
 .short-term-badge {
   position: absolute;
   top: 8px;
   right: 8px;
- /* background: #46570a8f;*/
-   background: linear-gradient(135deg, #2775cfe8, #d4f70ad3);
+  background: linear-gradient(135deg, #2775cfe8, #d4f70ad3);
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
@@ -247,7 +206,7 @@
   z-index: 5;
 }
 
-/* ✅ UPDATED: Image count badge - positioned in bottom right of image */
+/* ✅ UPDATED: Image count badge */
 .image-count-badge {
   position: absolute;
   bottom: 8px;
@@ -261,13 +220,12 @@
   backdrop-filter: blur(4px);
 }
 
-/* Card content - adjusted padding for shorter cards */
+/* Card content */
 .card-content {
   padding: 18px;
   position: relative;
 }
 
-/* Title */
 .card-content h3 {
   font-size: 1.3rem;
   margin-bottom: 12px;
@@ -275,7 +233,6 @@
   font-weight: 600;
 }
 
-/* Property details */
 .card-content p {
   margin-bottom: 8px;
   color: #4b5563;
@@ -302,8 +259,6 @@
   font-size: 0.9rem;
   color: #6b7280;
 }
-
-/* ✅ REMOVED: View more button styles (no longer needed) */
 
 /* Loading states */
 .loading-container,
@@ -339,7 +294,7 @@
   margin-bottom: 10px;
 }
 
-/* ✅ UPDATED: Responsive design for different screen sizes */
+/* ✅ Responsive design */
 @media (max-width: 1200px) {
   .boarding-grid-container {
     grid-template-columns: repeat(3, 1fr);
@@ -381,7 +336,7 @@
     right: 10px;
   }
 
-.filter-container {
+  .filter-container {
     flex-direction: column;
     align-items: center;
     gap: 8px;
@@ -393,3 +348,74 @@
   }
 }
 
+/* ✅ NEW: Filter tag styles for active search filters */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+  padding: 6px 12px;
+  margin: 2px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #90caf9;
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.2);
+  transition: all 0.3s ease;
+}
+
+.filter-tag:hover {
+  background: linear-gradient(135deg, #bbdefb, #90caf9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+}
+
+/* Clear filters button */
+.clear-filters-btn {
+  background: linear-gradient(135deg, #ffcdd2, #ef9a9a);
+  color: #c62828;
+  border: 1px solid #ef5350;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 8px;
+}
+
+.clear-filters-btn:hover {
+  background: linear-gradient(135deg, #ef9a9a, #e57373);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3);
+}
+
+/* Responsive design for filter tags */
+@media (max-width: 768px) {
+  .active-filters {
+    padding: 10px;
+  }
+  
+  .filter-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .clear-filters-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}

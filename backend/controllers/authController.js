@@ -4,8 +4,45 @@ const crypto = require('crypto');
 // In-memory storage for development
 const otpStorage = new Map();
 
-// Email transporter setup
+// Email transporter setup (supports Mailtrap, generic SMTP, or Gmail)
 const createTransporter = () => {
+  // Prefer Mailtrap in development if configured
+  if (
+    process.env.MAILTRAP_HOST &&
+    process.env.MAILTRAP_USER &&
+    process.env.MAILTRAP_PASS
+  ) {
+    return nodemailer.createTransport({
+      host: process.env.MAILTRAP_HOST,
+      port: parseInt(process.env.MAILTRAP_PORT || '2525', 10),
+      auth: {
+        user: process.env.MAILTRAP_USER,
+        pass: process.env.MAILTRAP_PASS
+      }
+    });
+  }
+
+  // Generic SMTP support
+  if (
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  ) {
+    const smtpSecure = String(process.env.SMTP_SECURE || '').toLowerCase();
+    const isSecure = smtpSecure === 'true' || smtpSecure === '1' || process.env.SMTP_PORT === '465';
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: isSecure,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  }
+
+  // Fallback to Gmail (requires App Password when 2FA enabled)
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -51,7 +88,7 @@ const sendOTP = async (req, res) => {
 
     // Email content
     const mailOptions = {
-      from: {
+      from: process.env.MAIL_FROM || {
         name: 'House Registration System',
         address: process.env.EMAIL_USER
       },
