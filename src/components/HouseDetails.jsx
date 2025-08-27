@@ -959,16 +959,16 @@ const HouseDetails = () => {
                   className="w-full border px-4 py-2 rounded"
                 >
                   <option value="">Select Location</option>
-                  <option value="Matara Town">Matara Town</option>
-                  <option value="Pallimulla">Pallimulla</option>
-                  <option value="Welewaththa">Welewaththa</option>
-                  <option value="Eliyakanda">Eliyakanda</option>
-                  <option value="Janaraja Mawatha">Janaraja Mawatha</option>
-                  <option value="SK Town">SK Town</option>
-                  <option value="Maddewatta">Maddewatta</option>
-                  <option value="Rassandeniya">Rassandeniya</option>
-                  <option value="Gandarawatta">Ganadarawatta</option>
-                  <option value="Devinuwara">Devinuwara</option>
+              <option value="Matara Town">Matara</option>
+              <option value="Pallimulla">Pallimulla</option>
+              <option value="Welewaththa">Welewaththa</option>
+              <option value="Maddewaththa">Maddewaththa</option>
+              <option value="Eliyakanda">Eliyakanda</option>
+              <option value="Janaraja Mw">Janaraja Mw</option>
+              <option value="Rassandeniya">Rassandeniya</option>
+              <option value="Gandarawaththa">Gandarawaththa</option>
+              <option value="S K Town">S K Town</option>
+              <option value="Devinuwara">Devinuwara</option>
                 </select>
 
                 <textarea
