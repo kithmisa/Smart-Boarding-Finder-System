@@ -7,21 +7,15 @@ import Search from './components/Search';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import About from './components/About';
-import LoginSignUp from './components/LoginSignUp';
-//import Login from './components/Login';
+
 import BoardingList from './components/BoardingList';
-//import RegisterForm from './components/RegisterForm';
+
 import Contact from './components/Contact';
-import AddBoardingForm from './components/AddBoardingForm';
-import OwnerDashboard from './components/OwnerDashboard';
-import Dashboard from './components/Dashboard';
 import OwnerDetails from './components/OwnerDetails';
 import HouseDetails from './components/HouseDetails';
 import Payment from './components/Payment';
 import BoardingDetail from './components/BoardingDetail'; 
 import ResetPassword from './components/ResetPassword';
-//import AdminLogin from './components/AdminLogin';
-
 import FloatingAdminIcon from './components/FloatingAdminIcon';
 import AdminLoginModal from './components/AdminLoginModal';
 import AdminDashboard from './components/AdminDashboard';
@@ -218,9 +212,6 @@ function App() {
          <Route path="/profile/:userId" element={<RequireAuth><UserProfile onLogout={handleLogout} /></RequireAuth>} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="contact" element={<Contact />} />
-         <Route path="addboarding" element={<AddBoardingForm />} />
-         <Route path="owner" element={<OwnerDashboard />} />
-           <Route path="dashboard" element={<Dashboard />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} /> 
       
       </Route>
