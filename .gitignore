@@ -1,0 +1,49 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+#Environment variables
+.env
+
+#other common ignores
+*.log
+
+# Test files
+backend/test_*.js
+backend/add_test_favorite.js
+
+# Uploads directory - keep folder structure but ignore all images
+backend/uploads/*.png
+backend/uploads/*.jpg
+backend/uploads/*.jpeg
+backend/uploads/*.gif
+backend/uploads/*.bmp
+backend/uploads/*.webp
+!backend/uploads/.gitkeep
+
+# SQL files (database schemas, dumps, migrations)
+*.sql
+!**/migrations/*.sql
+backend/database_schema.sql
+backend/link_houses_with_owners.sql
+backend/update_contact_table.sql

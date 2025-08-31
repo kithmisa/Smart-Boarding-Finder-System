@@ -1,0 +1,122 @@
+/* General styles */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+}
+
+.login-page {
+  padding-top: 60px;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-box {
+   position: relative;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  max-width: 500px; /* Increased to give room for all radios in one row */
+  width: 95%;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.login-box h2 {
+  margin-bottom: 20px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;         /* ✅ makes input border visible */
+  border-radius: 5px;
+  background-color: #fff;         /* ✅ ensures input is visible */
+  color: #000;                    /* ✅ black text so it shows up */
+  outline: none;
+}
+
+.login-box input::placeholder {
+  color: #888;
+}
+.sign-in-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #fff;
+  border: none;
+  border-radius: 5px;
+  color: black;
+  cursor: pointer;
+}
+
+/* Radio buttons styled as checkboxes */
+.checkbox-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  gap: 10px;
+  flex-wrap: nowrap; /* Don't wrap into multiple lines */
+}
+
+.custom-radio {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  position: relative;
+  padding-left: 25px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.custom-radio input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.custom-radio .checkmark {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 16px;
+  width: 16px;
+  background-color: #fff;
+  border: 2px solid #000;
+  border-radius: 4px;
+}
+
+.custom-radio input:checked ~ .checkmark {
+  background-color: #000;
+}
+
+.custom-radio .checkmark::after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.custom-radio input:checked ~ .checkmark::after {
+  display: block;
+}
+
+.custom-radio .checkmark::after {
+  left: 4px;
+  top: 0px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}

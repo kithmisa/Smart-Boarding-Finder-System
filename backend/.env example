@@ -1,0 +1,30 @@
+#Email Configuration
+EMAIL_USER=your Email address
+EMAIL_PASS=your email app password(not regular password)
+REPLY_TO_EMAIL=your email address
+
+# Note: For Gmail, you need to:
+# 1. Enable 2-factor authentication
+# 2. Generate an App Password
+# 3. Use the App Password instead of your regular password
+
+
+IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
+IMAP_USER=same email address you gave above
+IMAP_PASS=same app password   # app password, not your normal password
+
+JWT_SECRET=your_generated_64_character_random_string_here
+FRONTEND_URL=http://localhost:3000
+
+#note:for get jwt_secret run this on your terminal
+        node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=12345678
+DB_NAME=smartbo
+DB_PORT=3306
+
+# Server Configuration
+PORT=5000

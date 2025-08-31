@@ -1,0 +1,155 @@
+/* Global Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Create a background image layer */
+.app.container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('../assets/image.png') no-repeat center center/cover;
+  z-index: -1; /* Behind everything */
+  opacity: 0.8; /* Optional: soften background */
+}
+/*
+body {
+  font-family: Arial, sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}*/
+
+main {
+  flex: 1;
+}
+
+/* --- Search Section --- */
+.search-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  text-align: center;
+  color: #000; /* Text readable on light blur */
+}
+
+.search-section h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Dropdowns & Button */
+.search-form select {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  width: 220px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-form select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.3);
+}
+
+.search-form button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 200px;
+  flex-shrink: 0;           /* prevent shrinking */
+  flex-grow: 0;             /* prevent growing */
+  align-self: center;       /* prevent stretch */
+}
+
+.search-form button:hover {
+  background-color: #3730a3;
+}
+
+/* --- Features Section --- */
+.features-section {
+  padding: 2rem;
+  background-color: #f5f7fa;
+  text-align: center;
+  color: #000;
+}
+
+.features-section h2 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.features-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  justify-content: center;
+  padding: 0 1rem;
+}
+
+.feature-item {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
+  transform: perspective(1000px) translateZ(0);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.feature-item:hover {
+  transform: perspective(1000px) translateZ(20px) scale(1.05);
+  box-shadow: 0 30px 50px rgba(0, 0, 0, 0.3);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+  color: #4f46e5;
+}
+
+.feature-item h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #111827;
+}
+
+.feature-item p {
+  font-size: 1rem;
+  color: #4b5563;
+}
