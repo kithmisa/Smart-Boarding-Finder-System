@@ -206,8 +206,20 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-[999999] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm" 
+      style={{ 
+        zIndex: 999999, 
+        position: 'fixed', 
+        isolation: 'isolate',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'auto'
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[75vh] overflow-y-auto" style={{ position: 'relative', zIndex: 999999, isolation: 'isolate' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-yellow-600 to-red-400 text-white p-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
@@ -259,18 +271,6 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
                   <p className="text-green-800 font-medium">Bank Details Updated Successfully!</p>
                   <p className="text-green-700 text-sm">
                     Your bank information has been saved and is ready for payment processing.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : existingBankData ? (
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="flex items-center space-x-2">
-                <span className="text-green-600 text-lg">✅</span>
-                <div>
-                  <p className="text-green-800 font-medium">Existing Bank Details Found</p>
-                  <p className="text-green-700 text-sm">
-                    Current: {existingBankData.bank_name} - {existingBankData.account_number}
                   </p>
                 </div>
               </div>
