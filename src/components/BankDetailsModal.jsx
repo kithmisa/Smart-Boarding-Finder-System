@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Building2, UserCheck, CreditCard, MapPin, Hash, Check } from 'lucide-react';
 
 const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
@@ -11,9 +11,47 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
     branchName: '',
     branchCode: ''
   });
+  
+  const [existingBankData, setExistingBankData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  // ✅ NEW: Fetch existing bank details when modal opens
+  useEffect(() => {
+    if (isOpen && ownerData?.id) {
+      fetchExistingBankDetails();
+    }
+  }, [isOpen, ownerData?.id]);
+  
+  const fetchExistingBankDetails = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`http://localhost:5000/api/owner/${ownerData.id}/bank-details`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        // The backend returns the bank details directly, not wrapped in bankDetails
+        setExistingBankData(data);
+        // Pre-fill the form with existing data
+        setBankData({
+          accountHolderName: data.account_holder_name || '',
+          accountType: data.account_type || '',
+          accountNumber: data.account_number || '',
+          confirmAccountNumber: data.account_number || '',
+          bankName: data.bank_name || '',
+          branchName: data.branch_name || '',
+          branchCode: data.branch_code || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching existing bank details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const sriLankanBanks = [
     'Bank of Ceylon',
@@ -101,7 +139,30 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
         owner_id: ownerData?.id || ownerData?.owner_id
       };
       
+      // Call the onSubmit function (which handles both create and update)
       await onSubmit(submitData);
+      
+      // If successful, update the existing data state and show success message
+      if (existingBankData) {
+        setExistingBankData({
+          ...existingBankData,
+          account_holder_name: bankData.accountHolderName,
+          account_type: bankData.accountType,
+          account_number: bankData.accountNumber,
+          bank_name: bankData.bankName,
+          branch_name: bankData.branchName,
+          branch_code: bankData.branchCode
+        });
+      }
+      
+      // Show success message
+      setShowSuccess(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+      
     } catch (error) {
       console.error('Error submitting bank details:', error);
       alert('Failed to save bank details. Please try again.');
@@ -111,20 +172,34 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   };
 
   const resetForm = () => {
-    setBankData({
-      accountHolderName: '',
-      accountType: '',
-      accountNumber: '',
-      confirmAccountNumber: '',
-      bankName: '',
-      branchName: '',
-      branchCode: ''
-    });
+    // If we have existing data, reset to that, otherwise clear the form
+    if (existingBankData) {
+      setBankData({
+        accountHolderName: existingBankData.account_holder_name || '',
+        accountType: existingBankData.account_type || '',
+        accountNumber: existingBankData.account_number || '',
+        confirmAccountNumber: existingBankData.account_number || '',
+        bankName: existingBankData.bank_name || '',
+        branchName: existingBankData.branch_name || '',
+        branchCode: existingBankData.branch_code || ''
+      });
+    } else {
+      setBankData({
+        accountHolderName: '',
+        accountType: '',
+        accountNumber: '',
+        confirmAccountNumber: '',
+        bankName: '',
+        branchName: '',
+        branchCode: ''
+      });
+    }
     setErrors({});
   };
 
   const handleClose = () => {
     resetForm();
+    setShowSuccess(false);
     onClose();
   };
 
@@ -139,8 +214,12 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
             <div className="flex items-center space-x-3">
               <Building2 className="w-6 h-6" />
               <div>
-                <h2 className="text-2xl font-bold">Bank Account Details</h2>
-                <p className="text-blue-100">Secure payment processing setup</p>
+                <h2 className="text-2xl font-bold">
+                  {existingBankData ? 'Update Bank Details' : 'Bank Account Details'}
+                </h2>
+                <p className="text-blue-100">
+                  {existingBankData ? 'Update your existing bank information' : 'Secure payment processing setup'}
+                </p>
               </div>
             </div>
             <button
@@ -163,6 +242,40 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
               <div><span className="font-medium">NIC:</span> {ownerData?.nic || 'N/A'}</div>
             </div>
           </div>
+
+          {/* Existing Bank Details Status */}
+          {isLoading ? (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                <span className="text-blue-700">Loading existing bank details...</span>
+              </div>
+            </div>
+          ) : showSuccess ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600 text-lg">🎉</span>
+                <div>
+                  <p className="text-green-800 font-medium">Bank Details Updated Successfully!</p>
+                  <p className="text-green-700 text-sm">
+                    Your bank information has been saved and is ready for payment processing.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : existingBankData ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600 text-lg">✅</span>
+                <div>
+                  <p className="text-green-800 font-medium">Existing Bank Details Found</p>
+                  <p className="text-green-700 text-sm">
+                    Current: {existingBankData.bank_name} - {existingBankData.account_number}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* Account Holder Name */}
           <div>
@@ -355,7 +468,7 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
                   Saving...
                 </div>
               ) : (
-                'Save Bank Details'
+                existingBankData ? 'Update Bank Details' : 'Save Bank Details'
               )}
             </button>
           </div>

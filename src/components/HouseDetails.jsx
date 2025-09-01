@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   FaKey, FaUtensils, FaBroom, FaCar, FaCoffee, FaBath,
@@ -14,6 +14,7 @@ import bgHero from '../assets/image.png';
 
 const HouseDetails = () => {
   const { state } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   
   // ✅ Comprehensive debugging
@@ -97,6 +98,26 @@ const HouseDetails = () => {
 
   const [showBankModal, setShowBankModal] = useState(false);
   const [hasBankDetails, setHasBankDetails] = useState(false);
+  
+  // ✅ NEW: OTP Modal states
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [otpData, setOtpData] = useState({ email: '', name: '', contact: '', nic: '' });
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  
+  // ✅ NEW: OTP Input ref for better focus management
+  const otpInputRef = useRef(null);
+  
+  // ✅ NEW: Effect to focus OTP input when modal opens
+  useEffect(() => {
+    if (showOTPModal && otpInputRef.current) {
+      // Small delay to ensure modal is fully rendered
+      setTimeout(() => {
+        otpInputRef.current?.focus();
+      }, 100);
+    }
+  }, [showOTPModal]);
 
   // ✅ Edit Profile state
   const [editingOwnerProfile, setEditingOwnerProfile] = useState(false);
@@ -475,15 +496,28 @@ const HouseDetails = () => {
         setHasBankDetails(true);
         setShowBankModal(false);
         
-        alert('✅ Bank details saved successfully! Now submitting your property...');
+        // ✅ NEW: Check if this is an update or new creation
+        console.log('Bank details action:', result.action);
         
-        // ✅ FIXED: Wait a moment for state updates, then proceed with property submission
-        setTimeout(async () => {
-          console.log('Proceeding with property submission after bank details save');
-          // Get the current owner_id and submit property directly
-          const currentOwnerId = formData.owner_id || owner_id;
-          await submitProperty(currentOwnerId);
-        }, 100); // Short delay to ensure state updates
+        if (result.action === 'created') {
+          // First time creating bank details - proceed with property submission
+          console.log('🆕 First time bank details - proceeding with property submission');
+          alert('✅ Bank details saved successfully! Now submitting your property...');
+          
+          setTimeout(async () => {
+            console.log('Proceeding with property submission after bank details save');
+            const currentOwnerId = formData.owner_id || owner_id;
+            await submitProperty(currentOwnerId);
+          }, 100);
+        } else if (result.action === 'updated') {
+          // Updating existing bank details - just show success message
+          console.log('🔄 Bank details updated - no property submission needed');
+          alert('✅ Bank details updated successfully!');
+        } else {
+          // Fallback - show generic success message
+          console.log('❓ Unknown action - showing generic success message');
+          alert('✅ Bank details saved successfully!');
+        }
         
       } else {
         // Handle error responses
@@ -953,27 +987,139 @@ const HouseDetails = () => {
   // ✅ Edit Profile handler functions
   const handleSaveOwnerProfile = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/owner/${owner_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ownerProfileData),
-      });
+      // Debug: Log what we're sending
+      console.log('=== FRONTEND PROFILE UPDATE DEBUG ===');
+      console.log('Owner ID:', owner_id);
+      console.log('Owner Profile Data:', ownerProfileData);
+      console.log('State Owner Data:', state?.ownerData);
+      console.log('=====================================');
 
-      if (response.ok) {
-        const updatedOwner = await response.json();
-        setEditingOwnerProfile(false);
-        alert('Profile updated successfully!');
-        // Update the global state if needed
-        // window.location.reload(); // Or update the state more elegantly
+      // Validate required fields before sending
+      const { name, email, contact, nic } = ownerProfileData;
+      if (!name?.trim() || !email?.trim() || !contact?.trim() || !nic?.trim()) {
+        const missingFields = [];
+        if (!name?.trim()) missingFields.push('Name');
+        if (!email?.trim()) missingFields.push('Email');
+        if (!contact?.trim()) missingFields.push('Contact');
+        if (!nic?.trim()) missingFields.push('NIC');
+        
+        alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        return;
+      }
+
+      // Check if email is changing
+      const isEmailChanging = email.trim() !== (state?.ownerData?.email || '');
+      
+      if (isEmailChanging) {
+        // Email is changing, need OTP verification
+        try {
+          const result = await handleEmailChangeWithOTP(name, email, contact, nic);
+          if (result) {
+            // OTP verification was successful, result contains the updated owner data
+            await handleProfileUpdateSuccess(result);
+          }
+        } catch (error) {
+          console.error('OTP verification failed:', error);
+          // Error is already handled in the modal
+        }
       } else {
-        throw new Error('Failed to update profile');
+        // Email unchanged, update directly
+        await updateProfileDirectly(name, email, contact, nic);
       }
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
     }
+  };
+
+  // Function to handle email change with OTP verification
+  const handleEmailChangeWithOTP = async (name, email, contact, nic) => {
+    try {
+      // Step 1: Send OTP to new email
+      const otpResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/send-email-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      if (!otpResponse.ok) {
+        const errorData = await otpResponse.json();
+        throw new Error(errorData.error || 'Failed to send OTP');
+      }
+
+      const otpData = await otpResponse.json();
+      
+      if (otpData.emailVerified) {
+        // Email unchanged, update directly
+        await updateProfileDirectly(name, email, contact, nic);
+        return;
+      }
+
+      // Step 2: Show OTP modal instead of prompt
+      setOtpData({ email: email.trim(), name, contact, nic });
+      setOtpInput('');
+      setOtpError('');
+      setShowOTPModal(true);
+      
+      // Wait for modal to be closed with OTP
+      return new Promise((resolve, reject) => {
+        // Store the resolve/reject for later use
+        window.otpModalPromise = { resolve, reject };
+        console.log('🔐 OTP Modal Promise created, waiting for user input...');
+      });
+
+    } catch (error) {
+      console.error('Error in email OTP flow:', error);
+      alert(`Email verification failed: ${error.message}`);
+    }
+  };
+
+  // Function to update profile directly (when email unchanged)
+  const updateProfileDirectly = async (name, email, contact, nic) => {
+    const response = await fetch(`http://localhost:5000/api/owner/${owner_id}/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        contact: contact.trim(),
+        nic: nic.trim()
+      }),
+    });
+
+    if (response.ok) {
+      const updatedOwner = await response.json();
+      await handleProfileUpdateSuccess(updatedOwner);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update profile');
+    }
+  };
+
+  // Function to handle successful profile update
+  const handleProfileUpdateSuccess = async (updatedOwner) => {
+    // Update the local state with new data
+    setOwnerProfileData(updatedOwner.updated_fields);
+    
+    // Update the global navigation state
+    if (state?.ownerData) {
+      const updatedState = {
+        ...state,
+        ownerData: {
+          ...state.ownerData,
+          ...updatedOwner.updated_fields
+        }
+      };
+      // Update the location state
+      navigate(location.pathname, { state: updatedState, replace: true });
+    }
+    
+    setEditingOwnerProfile(false);
+    alert('Profile updated successfully!');
   };
 
   const handleDownloadData = async () => {
@@ -2008,7 +2154,7 @@ const HouseDetails = () => {
                             type="text"
                             value={ownerProfileData.name || ''}
                             onChange={(e) => setOwnerProfileData(prev => ({...prev, name: e.target.value}))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
                             placeholder="Enter your full name"
                           />
                         </div>
@@ -2019,7 +2165,7 @@ const HouseDetails = () => {
                             type="email"
                             value={ownerProfileData.email || ''}
                             onChange={(e) => setOwnerProfileData(prev => ({...prev, email: e.target.value}))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
                             placeholder="Enter your email"
                           />
                         </div>
@@ -2030,7 +2176,7 @@ const HouseDetails = () => {
                             type="tel"
                             value={ownerProfileData.contact || ''}
                             onChange={(e) => setOwnerProfileData(prev => ({...prev, contact: e.target.value}))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
                             placeholder="Enter your contact number"
                           />
                         </div>
@@ -2041,7 +2187,7 @@ const HouseDetails = () => {
                             type="text"
                             value={ownerProfileData.nic || ''}
                             onChange={(e) => setOwnerProfileData(prev => ({...prev, nic: e.target.value}))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-900 placeholder-gray-500"
                             placeholder="NIC Number"
                             disabled
                           />
@@ -2303,6 +2449,215 @@ const HouseDetails = () => {
           id: owner_id
         }}
       />
+
+      {/* ✅ NEW: Cute OTP Modal */}
+      {showOTPModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-100 animate-bounceIn">
+            {/* Header with cute icon */}
+            <div className="bg-gradient-to-r from-pink-400 to-purple-500 rounded-t-3xl p-6 text-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full bg-white opacity-10"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce">
+                  <span className="text-3xl animate-pulse">🔐</span>
+                </div>
+                <h3 className="text-white text-xl font-bold mb-2">Email Verification</h3>
+                <p className="text-white text-opacity-90 text-sm">
+                  We sent a 6-digit code to
+                </p>
+                <p className="text-white font-semibold text-lg">
+                  {otpData.email}
+                </p>
+              </div>
+            </div>
+
+            {/* OTP Input Section */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <p className="text-gray-600 mb-4">
+                  Please enter the verification code
+                </p>
+                
+                <p className="text-sm text-gray-500 mb-4">
+                  💡 Type your 6-digit code below
+                </p>
+                
+                {/* Cute OTP Input */}
+                <div className="flex justify-center space-x-3 mb-4">
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <div
+                      key={index}
+                      className={`w-12 h-12 border-2 rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-300 transform hover:scale-110 ${
+                        index < otpInput.length
+                          ? 'border-purple-500 bg-purple-50 text-purple-600 shadow-lg shadow-purple-200'
+                          : index === otpInput.length
+                          ? 'border-purple-300 bg-purple-25 text-purple-400 animate-pulse'
+                          : 'border-gray-300 bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      {otpInput[index] || (index === otpInput.length ? '|' : '')}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hidden Input for typing */}
+                <input
+                  type="text"
+                  value={otpInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setOtpInput(value);
+                    setOtpError('');
+                  }}
+                  className="absolute opacity-0 pointer-events-none"
+                  autoFocus
+                  placeholder="Enter 6-digit code"
+                />
+                
+                {/* Visible Input Field */}
+                <div className="relative mb-4">
+                  <input
+                    ref={otpInputRef}
+                    type="text"
+                    value={otpInput}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtpInput(value);
+                      setOtpError('');
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow only numbers and backspace
+                      if (!/[\d\b]/.test(e.key) && !['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full px-4 py-3 border-2 border-purple-300 rounded-xl focus:border-purple-500 focus:outline-none text-center text-lg font-mono bg-white shadow-sm transition-all duration-200 hover:border-purple-400"
+                    placeholder="Type 6-digit code here"
+                    autoFocus
+                    maxLength={6}
+                  />
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <span className="text-purple-400 text-lg">🔢</span>
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {otpError && (
+                  <div className="text-red-500 text-sm mb-4 bg-red-50 border border-red-200 rounded-xl p-3 animate-bounce">
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-lg">❌</span>
+                      <span className="font-medium">{otpError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Resend OTP Button */}
+                <button
+                  onClick={async () => {
+                    try {
+                      setIsVerifying(true);
+                      const otpResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/send-email-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: otpData.email }),
+                      });
+                      
+                      if (otpResponse.ok) {
+                        setOtpError('');
+                        alert('🔄 New OTP sent! Check your email.');
+                      } else {
+                        const errorData = await otpResponse.json();
+                        setOtpError(errorData.error || 'Failed to resend OTP');
+                      }
+                    } catch (error) {
+                      setOtpError('Failed to resend OTP');
+                    } finally {
+                      setIsVerifying(false);
+                    }
+                  }}
+                  disabled={isVerifying}
+                  className="text-purple-600 hover:text-purple-700 text-sm font-medium transition-colors duration-200 disabled:opacity-50"
+                >
+                  {isVerifying ? '🔄 Sending...' : '📧 Resend Code'}
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowOTPModal(false);
+                    if (window.otpModalPromise) {
+                      window.otpModalPromise.reject(new Error('OTP verification cancelled'));
+                      window.otpModalPromise = null;
+                    }
+                  }}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-2xl transition-all duration-200 hover:scale-105"
+                >
+                  ❌ Cancel
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    if (otpInput.length !== 6) {
+                      setOtpError('Please enter a 6-digit code');
+                      return;
+                    }
+
+                    try {
+                      setIsVerifying(true);
+                      setOtpError('');
+
+                      // Verify OTP and update profile
+                      const verifyResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/verify-email-otp`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          name: otpData.name,
+                          email: otpData.email,
+                          contact: otpData.contact,
+                          nic: otpData.nic,
+                          otp: otpInput
+                        }),
+                      });
+
+                      if (verifyResponse.ok) {
+                        const updatedOwner = await verifyResponse.json();
+                        
+                        // Show success animation before closing
+                        setOtpError('');
+                        setOtpInput('✅ Verified!');
+                        
+                        // Wait a moment to show success, then close
+                        setTimeout(() => {
+                          setShowOTPModal(false);
+                          
+                          // Resolve the promise with success
+                          if (window.otpModalPromise) {
+                            window.otpModalPromise.resolve(updatedOwner);
+                            window.otpModalPromise = null;
+                          }
+                        }, 1000);
+                      } else {
+                        const errorData = await verifyResponse.json();
+                        setOtpError(errorData.error || 'Failed to verify OTP');
+                      }
+                    } catch (error) {
+                      setOtpError('Verification failed. Please try again.');
+                    } finally {
+                      setIsVerifying(false);
+                    }
+                  }}
+                  disabled={otpInput.length !== 6 || isVerifying}
+                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isVerifying ? '🔄 Verifying...' : '✅ Verify & Update'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🎨 Cute Confirmation Modal */}
       {showConfirmModal && (

@@ -218,9 +218,12 @@ router.put('/:owner_id/profile', async (req, res) => {
     // Update owner profile
     const updateQuery = `
       UPDATE owner 
-      SET name = ?, email = ?, contact = ?, nic = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, email = ?, contact = ?, nic = ?
       WHERE id = ?
     `;
+
+    console.log('Executing update query:', updateQuery);
+    console.log('Query parameters:', [name.trim(), email.trim(), contact.trim(), nic.trim(), owner_id]);
 
     const [result] = await db.query(updateQuery, [
       name.trim(),
@@ -245,6 +248,173 @@ router.put('/:owner_id/profile', async (req, res) => {
     console.error('❌ Error updating profile:', error);
     res.status(500).json({ 
       error: 'Internal server error while updating profile',
+      details: error.message
+    });
+  }
+});
+
+// ✅ NEW: Send OTP for email verification when profile is updated
+router.post('/:owner_id/send-email-otp', async (req, res) => {
+  try {
+    const { owner_id } = req.params;
+    const { email } = req.body;
+
+    console.log('=== SEND EMAIL OTP DEBUG ===');
+    console.log('Owner ID:', owner_id);
+    console.log('New Email:', email);
+    console.log('============================');
+
+    if (!email?.trim()) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check if owner exists
+    const [ownerCheck] = await db.query(
+      'SELECT id, email as current_email FROM owner WHERE id = ?',
+      [owner_id]
+    );
+
+    if (ownerCheck.length === 0) {
+      return res.status(404).json({ error: 'Owner not found' });
+    }
+
+    const currentEmail = ownerCheck[0].current_email;
+    
+    // Only send OTP if email is actually changing
+    if (currentEmail === email.trim()) {
+      return res.status(200).json({ 
+        message: 'Email unchanged, no OTP needed',
+        emailVerified: true 
+      });
+    }
+
+    // Use existing OTP system from authController
+    const { sendOTP } = require('../controllers/authController');
+    
+    // Create a mock request object for the existing sendOTP function
+    const mockReq = {
+      body: {
+        email: email.trim(),
+        purpose: 'email_change'
+      }
+    };
+
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => {
+          if (code === 200) {
+            console.log(`📧 OTP sent to ${email} for owner ${owner_id}`);
+            res.status(200).json({
+              message: 'OTP sent successfully',
+              email: email.trim(),
+              purpose: 'email_change'
+            });
+          } else {
+            res.status(code).json(data);
+          }
+        }
+      })
+    };
+
+    // Send OTP using existing system
+    await sendOTP(mockReq, mockRes);
+
+  } catch (error) {
+    console.error('❌ Error sending email OTP:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while sending OTP',
+      details: error.message
+    });
+  }
+});
+
+// ✅ NEW: Verify email OTP and update profile
+router.post('/:owner_id/verify-email-otp', async (req, res) => {
+  try {
+    const { owner_id } = req.params;
+    const { email, otp, name, contact, nic } = req.body;
+
+    console.log('=== VERIFY EMAIL OTP DEBUG ===');
+    console.log('Owner ID:', owner_id);
+    console.log('Email:', email);
+    console.log('OTP:', otp);
+    console.log('============================');
+
+    if (!email?.trim() || !otp?.trim()) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    // Use existing OTP verification system from authController
+    const { verifyOTP } = require('../controllers/authController');
+    
+    // Create a mock request object for the existing verifyOTP function
+    const mockReq = {
+      body: {
+        email: email.trim(),
+        otp: otp.trim(),
+        purpose: 'email_change'
+      }
+    };
+
+    let otpVerified = false;
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => {
+          if (code === 200) {
+            otpVerified = true;
+          }
+          // Don't send response yet, we'll handle it after verification
+        }
+      })
+    };
+
+    // Verify OTP using existing system
+    await verifyOTP(mockReq, mockRes);
+
+    if (!otpVerified) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    // Check if email is already taken by another owner
+    const [emailCheck] = await db.query(
+      'SELECT id FROM owner WHERE email = ? AND id != ?',
+      [email.trim(), owner_id]
+    );
+
+    if (emailCheck.length > 0) {
+      return res.status(400).json({ error: 'Email is already taken by another owner' });
+    }
+
+    // Update owner profile with verified email
+    const updateQuery = `
+      UPDATE owner 
+      SET name = ?, email = ?, contact = ?, nic = ?
+      WHERE id = ?
+    `;
+
+    const [result] = await db.query(updateQuery, [
+      name.trim(),
+      email.trim(),
+      contact.trim(),
+      nic.trim(),
+      owner_id
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(500).json({ error: 'Failed to update profile' });
+    }
+
+    console.log('✅ Profile updated successfully with verified email for owner:', owner_id);
+    res.status(200).json({ 
+      message: 'Profile updated successfully with verified email',
+      owner_id: parseInt(owner_id),
+      updated_fields: { name, email, contact, nic }
+    });
+
+  } catch (error) {
+    console.error('❌ Error verifying email OTP:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while verifying OTP',
       details: error.message
     });
   }
