@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Building2, UserCheck, CreditCard, MapPin, Hash, Check } from 'lucide-react';
+import { maskAccountNumber } from '../utils/masking';
 
 const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   const [bankData, setBankData] = useState({
@@ -15,6 +16,7 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   const [existingBankData, setExistingBankData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // Track if user is editing
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -22,9 +24,52 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   // ✅ NEW: Fetch existing bank details when modal opens
   useEffect(() => {
     if (isOpen && ownerData?.id) {
+      // Always fetch fresh data when modal opens
       fetchExistingBankDetails();
     }
   }, [isOpen, ownerData?.id]);
+
+  // ✅ NEW: Cleanup when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal closes
+      setExistingBankData(null);
+      setIsLoading(false);
+      setShowSuccess(false);
+      setIsEditing(false);
+      setErrors({});
+      setBankData({
+        accountHolderName: '',
+        accountType: '',
+        accountNumber: '',
+        confirmAccountNumber: '',
+        bankName: '',
+        branchName: '',
+        branchCode: ''
+      });
+    }
+  }, [isOpen]);
+
+  // ✅ NEW: Cleanup when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal closes
+      setExistingBankData(null);
+      setIsLoading(false);
+      setShowSuccess(false);
+      setIsEditing(false);
+      setErrors({});
+      setBankData({
+        accountHolderName: '',
+        accountType: '',
+        accountNumber: '',
+        confirmAccountNumber: '',
+        bankName: '',
+        branchName: '',
+        branchCode: ''
+      });
+    }
+  }, [isOpen]);
   
   const fetchExistingBankDetails = async () => {
     try {
@@ -33,21 +78,48 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
       
       if (response.ok) {
         const data = await response.json();
+        
         // The backend returns the bank details directly, not wrapped in bankDetails
         setExistingBankData(data);
-        // Pre-fill the form with existing data
-        setBankData({
+        
+        // Pre-fill the form with existing data (use masked for display)
+        const formData = {
           accountHolderName: data.account_holder_name || '',
           accountType: data.account_type || '',
-          accountNumber: data.account_number || '',
-          confirmAccountNumber: data.account_number || '',
+          accountNumber: data.masked_account_number || '', // Use masked version for display
+          confirmAccountNumber: data.masked_account_number || '', // Use masked version for display
           bankName: data.bank_name || '',
           branchName: data.branch_name || '',
           branchCode: data.branch_code || ''
+        };
+        
+        setBankData(formData);
+      } else if (response.status === 404) {
+        // No existing bank details found
+        setExistingBankData(null);
+        // Clear the form when no data exists
+        setBankData({
+          accountHolderName: '',
+          accountType: '',
+          accountNumber: '',
+          confirmAccountNumber: '',
+          bankName: '',
+          branchName: '',
+          branchCode: ''
         });
       }
     } catch (error) {
       console.error('Error fetching existing bank details:', error);
+      // Clear form on error
+      setBankData({
+        accountHolderName: '',
+        accountType: '',
+        accountNumber: '',
+        confirmAccountNumber: '',
+        bankName: '',
+        branchName: '',
+        branchCode: ''
+      });
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +143,8 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   const accountTypes = [
     { value: 'savings', label: 'Savings Account' },
     { value: 'current', label: 'Current Account' },
-    { value: 'business', label: 'Business Account' }
+    { value: 'business', label: 'Business Account' },
+    { value: 'fixed_deposit', label: 'Fixed Deposit Account' }
   ];
 
   const handleChange = (e) => {
@@ -103,7 +176,8 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
 
     if (!bankData.accountNumber.trim()) {
       newErrors.accountNumber = 'Account number is required';
-    } else if (bankData.accountNumber.length < 8) {
+    } else if (bankData.accountNumber.length < 8 && !bankData.accountNumber.startsWith('XXXX')) {
+      // Allow masked account numbers (XXXX7890) to pass validation
       newErrors.accountNumber = 'Account number should be at least 8 digits';
     }
 
@@ -139,21 +213,14 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
         owner_id: ownerData?.id || ownerData?.owner_id
       };
       
-      // Call the onSubmit function (which handles both create and update)
-      await onSubmit(submitData);
-      
-      // If successful, update the existing data state and show success message
-      if (existingBankData) {
-        setExistingBankData({
-          ...existingBankData,
-          account_holder_name: bankData.accountHolderName,
-          account_type: bankData.accountType,
-          account_number: bankData.accountNumber,
-          bank_name: bankData.bankName,
-          branch_name: bankData.branchName,
-          branch_code: bankData.branchCode
-        });
-      }
+             // Call the onSubmit function (which handles both create and update)
+       await onSubmit(submitData);
+       
+       // If successful, refresh the data from the server
+       await fetchExistingBankDetails();
+       
+       // Exit edit mode
+       setIsEditing(false);
       
       // Show success message
       setShowSuccess(true);
@@ -172,34 +239,23 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   };
 
   const resetForm = () => {
-    // If we have existing data, reset to that, otherwise clear the form
-    if (existingBankData) {
-      setBankData({
-        accountHolderName: existingBankData.account_holder_name || '',
-        accountType: existingBankData.account_type || '',
-        accountNumber: existingBankData.account_number || '',
-        confirmAccountNumber: existingBankData.account_number || '',
-        bankName: existingBankData.bank_name || '',
-        branchName: existingBankData.branch_name || '',
-        branchCode: existingBankData.branch_code || ''
-      });
-    } else {
-      setBankData({
-        accountHolderName: '',
-        accountType: '',
-        accountNumber: '',
-        confirmAccountNumber: '',
-        bankName: '',
-        branchName: '',
-        branchCode: ''
-      });
-    }
+    // Reset form to initial state
+    setBankData({
+      accountHolderName: '',
+      accountType: '',
+      accountNumber: '',
+      confirmAccountNumber: '',
+      bankName: '',
+      branchName: '',
+      branchCode: ''
+    });
     setErrors({});
+    setIsEditing(false);
+    setShowSuccess(false);
   };
 
   const handleClose = () => {
-    resetForm();
-    setShowSuccess(false);
+    // The cleanup effect will handle state reset
     onClose();
   };
 
@@ -275,7 +331,24 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
                 </div>
               </div>
             </div>
-          ) : null}
+                     ) : existingBankData ? (
+             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center space-x-2">
+                   <Check className="w-5 h-5 text-yellow-600" />
+                   <span className="text-yellow-700 font-medium">Your bank info is safely on file</span>
+                 </div>
+                
+               </div>
+               
+             </div>
+           ) : (
+                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="text-gray-600 text-sm">
+                  No existing bank details found.
+                </div>
+              </div>
+           )}
 
           {/* Account Holder Name */}
           <div>
@@ -390,16 +463,22 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
               <CreditCard className="mr-2 w-4 h-4 text-yellow-600" />
               Bank Account Number *
             </label>
-            <input
-              type="text"
-              name="accountNumber"
-              value={bankData.accountNumber}
-              onChange={handleChange}
-              placeholder="Enter your account number"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${
-                errors.accountNumber ? 'border-red-500 bg-red-50' : 'border-yellow-300'
-              }`}
-            />
+            {!isEditing && existingBankData ? (
+              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                {bankData.accountNumber} (Masked for security)
+              </div>
+            ) : (
+              <input
+                type="text"
+                name="accountNumber"
+                value={bankData.accountNumber}
+                onChange={handleChange}
+                placeholder="Enter your account number"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors ${
+                  errors.accountNumber ? 'border-red-500 bg-red-50' : 'border-yellow-300'
+                }`}
+              />
+            )}
             {errors.accountNumber && (
               <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>
             )}
@@ -411,24 +490,32 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
               <Check className="mr-2 w-4 h-4 text-green-600" />
               Confirm Account Number *
             </label>
-            <input
-              type="text"
-              name="confirmAccountNumber"
-              value={bankData.confirmAccountNumber}
-              onChange={handleChange}
-              placeholder="Re-enter your account number"
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.confirmAccountNumber ? 'border-red-500 bg-red-50' : 'border-gray-300'
-              }`}
-            />
+            {!isEditing && existingBankData ? (
+              <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                {bankData.confirmAccountNumber} (Masked for security)
+              </div>
+            ) : (
+              <input
+                type="text"
+                name="confirmAccountNumber"
+                value={bankData.confirmAccountNumber}
+                onChange={handleChange}
+                placeholder="Re-enter your account number"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.confirmAccountNumber ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+            )}
             {errors.confirmAccountNumber && (
               <p className="text-red-500 text-sm mt-1">{errors.confirmAccountNumber}</p>
             )}
-            {bankData.accountNumber && bankData.confirmAccountNumber && 
-             bankData.accountNumber === bankData.confirmAccountNumber && (
-              <p className="text-green-600 text-sm mt-1 flex items-center">
-                <Check className="mr-1 w-4 h-4" /> Account numbers match
-              </p>
+            {!isEditing && existingBankData ? null : (
+              bankData.accountNumber && bankData.confirmAccountNumber && 
+              bankData.accountNumber === bankData.confirmAccountNumber && (
+                <p className="text-green-600 text-sm mt-1 flex items-center">
+                  <Check className="mr-1 w-4 h-4" /> Account numbers match
+                </p>
+              )
             )}
           </div>
 

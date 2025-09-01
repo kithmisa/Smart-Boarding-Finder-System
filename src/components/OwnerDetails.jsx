@@ -28,6 +28,86 @@ const OwnerDetails = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verifiedEmail, setVerifiedEmail] = useState('');
+  
+  // ✅ NIC validation display states
+  const [nicInfo, setNicInfo] = useState(null);
+  const [showNicInfo, setShowNicInfo] = useState(false);
+  
+  // ✅ Terms and conditions state
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // ✅ Enhanced NIC Validation with DOB & Gender Detection
+  const parseNIC = (nic) => {
+    const cleanNIC = nic.replace(/\s+/g, '').toUpperCase();
+    let year, dayText;
+
+    if (/^[0-9]{9}[VX]$/.test(cleanNIC)) {
+      // Old NIC (before 2016) → XXXXXXXXXV
+      year = parseInt("19" + cleanNIC.substring(0, 2)); 
+      dayText = cleanNIC.substring(2, 5);
+    } else if (/^[0-9]{12}$/.test(cleanNIC)) {
+      // New NIC (after 2016) → YYYYDDDDDDDD
+      year = parseInt(cleanNIC.substring(0, 4));
+      dayText = cleanNIC.substring(4, 7);
+    } else {
+      return { valid: false, message: "Invalid NIC format" };
+    }
+
+    let dayOfYear = parseInt(dayText);
+    let gender = "Male";
+
+    if (dayOfYear > 500) {
+      gender = "Female";
+      dayOfYear -= 500;
+    }
+
+    // Validate day of year range (1-366)
+    if (dayOfYear < 1 || dayOfYear > 366) {
+      return { valid: false, message: "Invalid day number in NIC" };
+    }
+
+    // Validate year range (1900 to current year)
+    const currentYear = new Date().getFullYear();
+    if (year < 1900 || year > currentYear) {
+      return { valid: false, message: "Invalid year in NIC" };
+    }
+
+    // Convert day of year → actual date
+    const dob = new Date(year, 0); // January 1st
+    dob.setDate(dayOfYear);
+
+    // Check if date is valid (handles leap years, etc.)
+    if (dob.getFullYear() !== year) {
+      return { valid: false, message: "Invalid date in NIC" };
+    }
+
+    // Calculate age
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+
+    // Check minimum age requirement (18 years)
+    if (age < 18) {
+      return { 
+        valid: false, 
+        message: `Age must be at least 18 years. Current age: ${age} years` 
+      };
+    }
+
+    return {
+      valid: true,
+      yearOfBirth: year,
+      dateOfBirth: dob.toISOString().split("T")[0], // YYYY-MM-DD
+      gender: gender,
+      age: age,
+      dayOfYear: dayOfYear,
+      nicType: cleanNIC.length === 12 ? 'New' : 'Old'
+    };
+  };
 
   // Validation functions
   const validateEmail = (email) => {
@@ -36,10 +116,8 @@ const OwnerDetails = () => {
   };
 
   const validateNIC = (nic) => {
-    const cleanNIC = nic.replace(/\s+/g, '').toUpperCase();
-    const newNICRegex = /^\d{12}$/;
-    const oldNICRegex = /^\d{9}[VX]$/;
-    return newNICRegex.test(cleanNIC) || oldNICRegex.test(cleanNIC);
+    const nicValidation = parseNIC(nic);
+    return nicValidation.valid;
   };
 
   const validateContact = (contact) => {
@@ -65,14 +143,21 @@ const OwnerDetails = () => {
 
     if (!formData.nic.trim()) {
       newErrors.nic = 'NIC is required';
-    } else if (!validateNIC(formData.nic)) {
-      newErrors.nic = 'NIC must be either 12 digits or 9 digits followed by V/X';
+    } else {
+      const nicValidation = parseNIC(formData.nic);
+      if (!nicValidation.valid) {
+        newErrors.nic = nicValidation.message;
+      }
     }
 
     if (!formData.contact.trim()) {
       newErrors.contact = 'Contact number is required';
     } else if (!validateContact(formData.contact)) {
       newErrors.contact = 'Contact number must be exactly 10 digits';
+    }
+
+    if (!acceptedTerms) {
+      newErrors.terms = 'You must accept the terms and conditions to register';
     }
 
     setErrors(newErrors);
@@ -85,8 +170,13 @@ const OwnerDetails = () => {
       return false;
     }
     if (!validateNIC(loginNIC)) {
-      setLoginError('Please enter a valid NIC (12 digits or 9 digits + V/X)');
-      return false;
+      setLoginError('Please enter a valid NIC format');
+    } else {
+      const nicValidation = parseNIC(loginNIC);
+      if (!nicValidation.valid) {
+        setLoginError(nicValidation.message);
+        return false;
+      }
     }
     setLoginError('');
     return true;
@@ -101,10 +191,33 @@ const OwnerDetails = () => {
       setErrors({ ...errors, [name]: '' });
     }
 
+    // Clear NIC info when there's an error
+    if (errors.nic && name === 'nic') {
+      setNicInfo(null);
+      setShowNicInfo(false);
+    }
+
     // If email is changed and was previously verified, reset verification
     if (name === 'email' && isEmailVerified && value.trim().toLowerCase() !== verifiedEmail.toLowerCase()) {
       setIsEmailVerified(false);
       setVerifiedEmail('');
+    }
+
+    // ✅ Real-time NIC validation and info display
+    if (name === 'nic') {
+      if (value.trim()) {
+        const validation = parseNIC(value);
+        if (validation.valid) {
+          setNicInfo(validation);
+          setShowNicInfo(true);
+        } else {
+          setNicInfo(null);
+          setShowNicInfo(false);
+        }
+      } else {
+        setNicInfo(null);
+        setShowNicInfo(false);
+      }
     }
   };
 
@@ -247,6 +360,19 @@ const OwnerDetails = () => {
       }
 
       alert('✅ Registered successfully');
+     
+      // Clear form and NIC info
+      setFormData({
+        name: '',
+        email: '',
+        nic: '',
+        contact: '',
+      });
+      setNicInfo(null);
+      setShowNicInfo(false);
+      setErrors({});
+      setIsEmailVerified(false);
+      setVerifiedEmail('');
      
       console.log('Server response:', data);
       navigate('/register/house', { 
@@ -392,10 +518,44 @@ const OwnerDetails = () => {
                   value={formData.nic}
                   onChange={handleChange}
                   className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                    errors.nic ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    errors.nic ? 'border-red-500 bg-red-50' : 
+                    nicInfo ? 'border-green-500 bg-green-50' : 'border-gray-300'
                   }`}
                 />
                 {errors.nic && <p className="text-red-500 text-sm mt-1">{errors.nic}</p>}
+                
+                {/* ✅ Enhanced NIC Information Display */}
+                {showNicInfo && nicInfo && (
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FaCheckCircle className="text-green-600" size={16} />
+                      <span className="text-sm font-medium text-green-800">Valid NIC ✓</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                      <div>
+                        <span className="font-medium">Date of Birth:</span>
+                        <br />
+                        <span className="font-semibold">{nicInfo.dateOfBirth}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Gender:</span>
+                        <br />
+                        <span className="font-semibold">{nicInfo.gender}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Age:</span>
+                        <br />
+                        <span className="font-semibold">{nicInfo.age} years</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">NIC Type:</span>
+                        <br />
+                        <span className="font-semibold">{nicInfo.nicType}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <p className="text-xs text-gray-600 mt-1">
                   Example: 200012345678 or 901234567V
                 </p>
@@ -416,19 +576,56 @@ const OwnerDetails = () => {
                 <p className="text-xs text-gray-600 mt-1">
                   Example: 0771234567
                 </p>
-              </div>
+                             </div>
 
-              <button
-                onClick={handleRegister}
-                disabled={!isEmailVerified}
-                className={`px-8 py-3 rounded font-bold mt-6 transition-colors ${
-                  !isEmailVerified
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-              >
-                {!isEmailVerified ? 'Verify Email to Register' : 'Register'}
-              </button>
+               {/* ✅ Terms and Conditions */}
+               <div className="mt-4">
+                 <div className="flex items-start gap-3">
+                   <input
+                     type="checkbox"
+                     id="acceptTerms"
+                     checked={acceptedTerms}
+                     onChange={(e) => setAcceptedTerms(e.target.checked)}
+                     className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                   />
+                   <div className="text-sm text-gray-700">
+                     <label htmlFor="acceptTerms" className="cursor-pointer">
+                       I agree to the{' '}
+                       <button
+                         type="button"
+                         onClick={() => setShowTermsModal(true)}
+                         className="text-blue-600 hover:text-blue-800 underline font-medium"
+                       >
+                         Terms and Conditions
+                       </button>
+                       {' '}and{' '}
+                       <button
+                         type="button"
+                         onClick={() => setShowTermsModal(true)}
+                         className="text-blue-600 hover:text-blue-800 underline font-medium"
+                       >
+                         Privacy Policy
+                       </button>
+                     </label>
+                     {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms}</p>}
+                   </div>
+                 </div>
+               </div>
+
+               <button
+                 onClick={handleRegister}
+                 disabled={!isEmailVerified || !acceptedTerms}
+                 className={`px-8 py-3 rounded font-bold mt-6 transition-colors ${
+                   !isEmailVerified || !acceptedTerms
+                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                     : 'bg-blue-600 hover:bg-blue-700 text-white'
+                 }`}
+               >
+                 {!isEmailVerified ? 'Verify Email to Register' : 
+                  !acceptedTerms ? 'Accept Terms to Register' : 'Register'}
+               </button>
+
+
 
               <p className="mt-4 text-sm text-black">
                 Already registered?{' '}
@@ -544,10 +741,120 @@ const OwnerDetails = () => {
               Cancel
             </p>
           </div>
-        </div>
-      )}
-    </>
-  );
-};
+                 </div>
+       )}
+
+       {/* ✅ Terms and Conditions Modal */}
+       {showTermsModal && (
+         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[70vh] overflow-y-auto">
+             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+               <div className="flex items-center justify-between">
+                 <h2 className="text-xl font-bold text-gray-800">Terms and Conditions & Privacy Policy</h2>
+                 <button
+                   onClick={() => setShowTermsModal(false)}
+                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                 >
+                   ×
+                 </button>
+               </div>
+             </div>
+             
+             <div className="p-6 space-y-6">
+               {/* Terms and Conditions */}
+               <div>
+                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Terms and Conditions</h3>
+                 <div className="text-sm text-gray-700 space-y-3 leading-relaxed">
+                   <p><strong>1. Acceptance of Terms</strong></p>
+                   <p>By registering with Smart Boarding Finder System, you agree to be bound by these terms and conditions.</p>
+                   
+                   <p><strong>2. User Responsibilities</strong></p>
+                   <p>• You must provide accurate and truthful information during registration</p>
+                   <p>• You are responsible for maintaining the confidentiality of your account</p>
+                   <p>• You must be at least 18 years old to register</p>
+                   <p>• You agree not to use the service for any illegal or unauthorized purpose</p>
+                   
+                   <p><strong>3. Property Listings</strong></p>
+                   <p>• All property information must be accurate and up-to-date</p>
+                   <p>• You are responsible for the accuracy of property details, images, and availability</p>
+                   <p>• Property listings are subject to admin approval before going live</p>
+                   
+                   <p><strong>4. Payment and Fees</strong></p>
+                   <p>• Bank details are required for receiving booking payments</p>
+                   <p>• All transactions are processed securely through the platform</p>
+                   
+                   <p><strong>5. Prohibited Activities</strong></p>
+                   <p>• Posting false or misleading information</p>
+                   <p>• Harassing or discriminating against potential tenants</p>
+                   <p>• Violating any applicable laws or regulations</p>
+                   
+                   <p><strong>6. Termination</strong></p>
+                   <p>• We reserve the right to suspend or terminate accounts that violate these terms</p>
+                   <p>• You may terminate your account at any time</p>
+                 </div>
+               </div>
+
+               {/* Privacy Policy */}
+               <div className="border-t border-gray-200 pt-6">
+                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Privacy Policy</h3>
+                 <div className="text-sm text-gray-700 space-y-3 leading-relaxed">
+                   <p><strong>1. Information We Collect</strong></p>
+                   <p>• Personal information (name, email, contact number, NIC)</p>
+                   <p>• Property details and images</p>
+                   <p>• Bank account information for payment processing</p>
+                   <p>• Communication records and booking history</p>
+                   
+                   <p><strong>2. How We Use Your Information</strong></p>
+                   <p>• To provide and maintain our services</p>
+                   <p>• To process payments and bookings</p>
+                   <p>• To communicate with you about your account and services</p>
+                   <p>• To improve our platform and user experience</p>
+                   
+                   <p><strong>3. Information Security</strong></p>
+                   <p>• We implement appropriate security measures to protect your data</p>
+                   <p>• Bank details are encrypted and stored securely</p>
+                   <p>• Access to personal information is restricted to authorized personnel</p>
+                   
+                   <p><strong>4. Information Sharing</strong></p>
+                   <p>• We do not sell, trade, or rent your personal information</p>
+                   <p>• Information may be shared with tenants for booking purposes</p>
+                   <p>• We may disclose information if required by law</p>
+                   
+                   <p><strong>5. Data Retention</strong></p>
+                   <p>• We retain your information as long as your account is active</p>
+                   <p>• You may request deletion of your data at any time</p>
+                   
+                   <p><strong>6. Contact Information</strong></p>
+                   <p>For questions about these terms or privacy policy, contact our support team.</p>
+                 </div>
+               </div>
+
+               {/* Acceptance Button */}
+               <div className="border-t border-gray-200 pt-6">
+                 <div className="flex justify-between items-center">
+                   <button
+                     onClick={() => setShowTermsModal(false)}
+                     className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                   >
+                     Close
+                   </button>
+                   <button
+                     onClick={() => {
+                       setAcceptedTerms(true);
+                       setShowTermsModal(false);
+                     }}
+                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                   >
+                     Accept Terms
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+     </>
+   );
+ };
 
 export default OwnerDetails;

@@ -769,6 +769,11 @@ const HouseDetails = () => {
 
       if (!currentBankStatus) {
         console.log('Bank details missing, showing modal');
+        if (!owner_id) {
+          console.error('❌ Cannot open bank modal: owner_id is missing');
+          alert('Owner ID is missing. Please refresh the page and try again.');
+          return;
+        }
         alert('⚠️ Bank details are required before submitting properties. Please add your bank details first.');
         setShowBankModal(true);
         return;
@@ -2266,13 +2271,21 @@ const HouseDetails = () => {
                         </div>
                         Bank Details
                       </h3>
-                      <button
-                        onClick={() => setShowBankModal(true)}
-                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2"
-                      >
-                        <FaPlus size={14} />
-                        {hasBankDetails ? 'Update' : 'Add'} Bank Details
-                      </button>
+                                              <button
+                          onClick={() => {
+                            if (!owner_id) {
+                              console.error('❌ Cannot open bank modal: owner_id is missing');
+                              alert('Owner ID is missing. Please refresh the page and try again.');
+                              return;
+                            }
+                            console.log('✅ Opening bank modal with owner_id:', owner_id);
+                            setShowBankModal(true);
+                          }}
+                          className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <FaPlus size={14} />
+                          {hasBankDetails ? 'Update' : 'Add'} Bank Details
+                        </button>
                     </div>
                     
                     {hasBankDetails ? (
@@ -2324,7 +2337,15 @@ const HouseDetails = () => {
                         <h4 className="text-lg font-semibold text-gray-800 mb-2">No Bank Details Added</h4>
                         <p className="text-gray-600 mb-4">Add your bank details to receive payments from bookings</p>
                         <button
-                          onClick={() => setShowBankModal(true)}
+                          onClick={() => {
+                            if (!owner_id) {
+                              console.error('❌ Cannot open bank modal: owner_id is missing');
+                              alert('Owner ID is missing. Please refresh the page and try again.');
+                              return;
+                            }
+                            console.log('✅ Opening bank modal with owner_id:', owner_id);
+                            setShowBankModal(true);
+                          }}
                           className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2 mx-auto"
                         >
                           <FaPlus />
@@ -2441,12 +2462,12 @@ const HouseDetails = () => {
         isOpen={showBankModal}
         onClose={() => setShowBankModal(false)}
         onSubmit={handleBankDetailsSubmit}
-        ownerData={state?.ownerData || { 
-          name: formData.name,
-          email: formData.email,
-          contact: formData.contact,
-          nic: formData.nic,
-          id: owner_id
+        ownerData={{
+          name: state?.ownerData?.name || formData.name || '',
+          email: state?.ownerData?.email || formData.email || '',
+          contact: state?.ownerData?.contact || formData.contact || '',
+          nic: state?.ownerData?.nic || formData.nic || '',
+          id: owner_id || state?.ownerData?.id || state?.owner_id
         }}
       />
 

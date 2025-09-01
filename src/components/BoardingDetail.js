@@ -550,7 +550,7 @@ const BoardingDetail = () => {
               
               {/* Availability Notice - Prominent Display */}
               {house?.availabilityStatus && (house.availabilityStatus).toLowerCase() !== 'available' && (
-                <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                <div className="mb-6 p-4 bg-red-20 backdrop-blur-m  border-b-2 border-red-800 w-1/2 mx-auto">
                   <div className="flex items-center justify-center gap-3 text-red-800">
                     <span className="text-2xl">⏳</span>
                     <div>

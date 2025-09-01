@@ -5,6 +5,9 @@ const { registerOwner, loginOwner } = require('../controllers/ownerController');
 // ✅ FIXED: Import your database connection (same path as in ownerController.js)
 const db = require('../db'); // ✅ ADD THIS LINE - matching your controller import path
 
+// ✅ Import encryption utilities
+const { encrypt, decrypt, maskAccountNumber } = require('../utils/encryption');
+
 // Correct route paths
 router.post('/register', registerOwner);
 router.post('/login', loginOwner);
@@ -97,7 +100,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
 
     if (existingBankDetails.length > 0) {
       console.log('Updating existing bank details...');
-      // ✅ UPDATE existing bank details
+      // ✅ UPDATE existing bank details with encryption
       const updateQuery = `
         UPDATE owner_bank_details 
         SET account_holder_name = ?, 
@@ -110,10 +113,17 @@ router.post('/:owner_id/bank-details', async (req, res) => {
         WHERE owner_id = ?
       `;
 
+      // ✅ Debug encryption process
+      console.log('🔐 Encryption Debug:');
+      console.log('Original account number:', accountNumber);
+      const encryptedAccountNumber = encrypt(accountNumber);
+      console.log('Encrypted account number:', encryptedAccountNumber);
+      console.log('Is encrypted:', encryptedAccountNumber !== accountNumber ? 'Yes' : 'No');
+      
       const [result] = await db.query(updateQuery, [
         accountHolderName,
         accountType,
-        accountNumber,
+        encryptedAccountNumber, // ✅ Use encrypted value
         bankName,
         branchName,
         branchCode || null,
@@ -135,11 +145,18 @@ router.post('/:owner_id/bank-details', async (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `;
 
+      // ✅ Debug encryption process for INSERT
+      console.log('🔐 Encryption Debug (INSERT):');
+      console.log('Original account number:', accountNumber);
+      const encryptedAccountNumber = encrypt(accountNumber);
+      console.log('Encrypted account number:', encryptedAccountNumber);
+      console.log('Is encrypted:', encryptedAccountNumber !== accountNumber ? 'Yes' : 'No');
+      
       const [result] = await db.query(insertQuery, [
         owner_id,
         accountHolderName,
         accountType,
-        accountNumber,
+        encryptedAccountNumber, // ✅ Use encrypted value
         bankName,
         branchName,
         branchCode || null
@@ -452,8 +469,37 @@ router.get('/:owner_id/bank-details', async (req, res) => {
       return res.status(404).json({ error: 'Bank details not found' });
     }
 
-    console.log('✅ Bank details found:', bankDetails[0]);
-    res.json(bankDetails[0]);
+    // ✅ Decrypt and mask sensitive data for display
+    let accountNumber, maskedAccountNumber;
+    
+    try {
+      // Try to decrypt (in case it's already encrypted)
+      accountNumber = decrypt(bankDetails[0].account_number);
+      if (!accountNumber) {
+        // If decryption fails, assume it's plain text
+        accountNumber = bankDetails[0].account_number;
+      }
+    } catch (error) {
+      // If decryption throws error, use original (plain text)
+      accountNumber = bankDetails[0].account_number;
+    }
+    
+    maskedAccountNumber = maskAccountNumber(accountNumber);
+    
+    const decryptedDetails = {
+      ...bankDetails[0],
+      account_number: accountNumber, // Full account number for internal use
+      masked_account_number: maskedAccountNumber // Masked for display
+    };
+
+    console.log('✅ Bank details found and processed:', {
+      ...decryptedDetails,
+      account_number: '***' + decryptedDetails.account_number.slice(-4), // Log masked version
+      masked_account_number: decryptedDetails.masked_account_number,
+      original_encrypted: bankDetails[0].account_number.substring(0, 10) + '...'
+    });
+    
+    res.json(decryptedDetails);
 
   } catch (error) {
     console.error('❌ Error fetching bank details:', error);

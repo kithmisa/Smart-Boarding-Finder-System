@@ -370,7 +370,7 @@
 }
 
 .availability-label.short-term {
-  background: linear-gradient(135deg, #f3e30565, #05d4f888);
+  background: linear-gradient(135deg, #b4f30565, #05f8427a);
   color: #8B4513;
   border: 2px solid rgba(193, 245, 5, 0.945);
 }
