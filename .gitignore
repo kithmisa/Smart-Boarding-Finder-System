@@ -47,3 +47,5 @@ backend/uploads/*.webp
 backend/database_schema.sql
 backend/link_houses_with_owners.sql
 backend/update_contact_table.sql
+
+*.md
