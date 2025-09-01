@@ -221,9 +221,10 @@ const verifyOTP = async (req, res) => {
       return res.status(400).json({ error: 'No OTP found. Please request a new one.' });
     }
 
-    // Check if OTP purpose matches
-    if (storedData.purpose !== purpose) {
-      console.log('❌ OTP purpose mismatch:', { stored: storedData.purpose, requested: purpose });
+    // Check if OTP purpose matches. Backward-compat: legacy OTPs may not have a purpose; treat as 'verification'.
+    const storedPurpose = storedData.purpose || 'verification';
+    if (storedPurpose !== purpose) {
+      console.log('❌ OTP purpose mismatch:', { stored: storedPurpose, requested: purpose });
       return res.status(400).json({ error: 'Invalid OTP purpose. Please request a new one.' });
     }
 
@@ -261,20 +262,47 @@ const verifyOTP = async (req, res) => {
       // Update user verification status and activate account in database
       try {
         const connection = await db.getConnection();
-        await connection.execute(
-          'UPDATE users SET email_verified = TRUE, status = "active" WHERE email = ?',
-          [email]
-        );
-        connection.release();
-        console.log('✅ User account activated:', email);
-      } catch (dbError) {
-        console.error('Database error updating verification status:', dbError);
-      }
+        try {
+          await connection.execute(
+            'UPDATE users SET email_verified = TRUE, status = "active" WHERE email = ?',
+            [email]
+          );
 
-      res.status(200).json({
-        message: 'Email verified successfully',
-        email: email
-      });
+          // Fetch user to return in response (without password)
+          const [users] = await connection.execute(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+          );
+
+          let user = users && users.length > 0 ? users[0] : null;
+
+          if (!user) {
+            console.warn('⚠️ Verified email but user not found when fetching:', email);
+            return res.status(200).json({ message: 'Email verified successfully', email });
+          }
+
+          // Generate a simple token (non-JWT) similar to loginUser
+          const token = crypto.randomBytes(32).toString('hex');
+
+          // Remove password fields
+          const { password_hash, reset_token, reset_token_expiry, ...userWithoutSensitive } = user;
+
+          console.log('✅ User account activated and token issued:', email);
+
+          return res.status(200).json({
+            message: 'Email verified successfully',
+            email,
+            token,
+            user: userWithoutSensitive
+          });
+        } finally {
+          connection.release();
+        }
+      } catch (dbError) {
+        console.error('Database error during verification response:', dbError);
+        // Still return success for verification, but without token
+        return res.status(200).json({ message: 'Email verified successfully', email });
+      }
     } else if (purpose === 'password_reset') {
       // For password reset, DON'T delete OTP yet - keep it for the actual password reset
       // The OTP will be deleted in resetPasswordWithOTP after successful password update
@@ -338,7 +366,8 @@ const registerUser = async (req, res) => {
     otpStorage.set(emailKey, {
       otp,
       expiry: otpExpiry,
-      attempts: 0
+      attempts: 0,
+      purpose: 'verification'
     });
     
     console.log('💾 OTP stored during registration:', { 

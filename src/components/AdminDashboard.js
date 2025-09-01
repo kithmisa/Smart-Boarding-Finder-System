@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Users, Home, User, MessageCircle, Settings, Menu, X, Reply, Eye, Trash2, CheckCircle, Clock, Building, MapPin, Calendar, Star, Image, ExternalLink } from 'lucide-react';
+import { Users, Home, User, MessageCircle, Settings, Menu, X, Reply, Eye, Trash2, CheckCircle, Clock, Building, MapPin, Calendar, Star, Image, ExternalLink, CalendarCheck, Mail, Send } from 'lucide-react';
 import bgHero from '../assets/image.png';
 import { Moon, Sun } from 'lucide-react';
 
@@ -230,6 +230,7 @@ const AdminDashboard = () => {
   const [houses, setHouses] = useState([]);
   const [comments, setComments] = useState([]);
   const [boardingHouses, setBoardingHouses] = useState([]);
+  const [visitRequests, setVisitRequests] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [replyModalOpen, setReplyModalOpen] = useState(false);
@@ -239,6 +240,12 @@ const AdminDashboard = () => {
   const [selectedComment, setSelectedComment] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all'); // 'all', 'unread', 'replied'
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Email modal states
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
   
   // Use ref for direct DOM access
   const replyTextareaRef = useRef(null);
@@ -357,6 +364,9 @@ const AdminDashboard = () => {
         case 'houses':
           endpoint = '/api/admin/houses';
           break;
+        case 'visitRequests':
+          endpoint = '/api/admin/visit-requests';
+          break;
         case 'comments':
           endpoint = '/api/admin/comments';
           break;
@@ -385,6 +395,9 @@ const AdminDashboard = () => {
             break;
           case 'houses':
             setHouses(data.houses || []);
+            break;
+          case 'visitRequests':
+            setVisitRequests(data.visitRequests || []);
             break;
           case 'comments':
             setComments(data.comments || []);
@@ -641,6 +654,7 @@ const AdminDashboard = () => {
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'owners', label: 'Owner Management', icon: User },
     { id: 'houses', label: 'House Management', icon: Home },
+    { id: 'visitRequests', label: 'Visit Requests', icon: CalendarCheck },
    /* { id: 'boarding', label: 'Boarding Houses', icon: Building },*/
     { id: 'comments', label: 'Comments & Replies', icon: MessageCircle },
   ];
@@ -672,7 +686,7 @@ const AdminDashboard = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto ">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto mt-25 mb-2">
           <div className="p-6">
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
@@ -1041,6 +1055,19 @@ const AdminDashboard = () => {
                       View
                     </button>
                     <button
+                      onClick={() => openEmailModal(
+                        { 
+                          name: user.username || user.first_name, 
+                          email: user.email 
+                        },
+                        'Message from Smart Boarding Finder Admin'
+                      )}
+                      className="text-green-600 hover:text-green-800 flex items-center gap-1"
+                    >
+                      <Mail size={16} />
+                      Email
+                    </button>
+                    <button
                       onClick={() => handleDelete('users', user.id)}
                       className="text-red-600 hover:text-red-800 flex items-center gap-1"
                     >
@@ -1088,6 +1115,19 @@ const AdminDashboard = () => {
                     >
                       <Eye size={16} />
                       View
+                    </button>
+                    <button
+                      onClick={() => openEmailModal(
+                        { 
+                          name: owner.name, 
+                          email: owner.email 
+                        },
+                        'Message from Smart Boarding Finder Admin'
+                      )}
+                      className="text-green-600 hover:text-green-800 flex items-center gap-1"
+                    >
+                      <Mail size={16} />
+                      Email
                     </button>
                     <button
                       onClick={() => handleDelete('owners', owner.id)}
@@ -1771,6 +1811,237 @@ const AdminDashboard = () => {
     );
   };
 
+  // Handle email sending
+  const handleSendEmail = async () => {
+    if (!emailRecipient || !emailSubject.trim() || !emailMessage.trim()) {
+      alert('Please fill in all email fields');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/admin/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailRecipient.email,
+          subject: emailSubject,
+          message: emailMessage,
+          recipientName: emailRecipient.name || emailRecipient.username
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to send email');
+
+      alert('Email sent successfully!');
+      setEmailModalOpen(false);
+      setEmailRecipient(null);
+      setEmailSubject('');
+      setEmailMessage('');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert(`Failed to send email: ${error.message}`);
+    }
+  };
+
+  // Open email modal for specific recipient
+  const openEmailModal = (recipient, defaultSubject = '') => {
+    setEmailRecipient(recipient);
+    setEmailSubject(defaultSubject);
+    setEmailMessage('');
+    setEmailModalOpen(true);
+  };
+
+  const renderVisitRequests = () => {
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'pending': return 'text-yellow-600 bg-yellow-100';
+        case 'confirmed': return 'text-green-600 bg-green-100';
+        case 'rejected': return 'text-red-600 bg-red-100';
+        case 'cancelled': return 'text-gray-600 bg-gray-100';
+        default: return 'text-blue-600 bg-blue-100';
+      }
+    };
+
+    const formatDate = (dateString) => {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className={`${darkClasses.card} rounded-lg shadow-lg border ${darkClasses.border}`}>
+          <div className="px-6 py-4">
+            <h2 className={`text-xl font-semibold ${darkClasses.text}`}>
+              Visit Requests Management
+            </h2>
+            <p className={`text-sm ${darkClasses.textMuted} mt-1`}>
+              Monitor and manage all visit requests from users
+            </p>
+          </div>
+        </div>
+
+        {/* Visit Requests List */}
+        <div className={`${darkClasses.card} rounded-lg shadow-lg border ${darkClasses.border}`}>
+          <div className="px-6 py-4 border-b border-white/20">
+            <h3 className={`text-lg font-medium ${darkClasses.text}`}>
+              All Visit Requests ({visitRequests.length})
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className={`${darkClasses.tableHeader}`}>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Requestor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Property
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Owner
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Requested Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Message
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={`${darkClasses.tableBody} divide-y ${darkClasses.divide}`}>
+                {visitRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className={`px-6 py-8 text-center ${darkClasses.textMuted}`}>
+                      <div className="flex flex-col items-center">
+                        <CalendarCheck size={48} className="mb-2 opacity-50" />
+                        <p>No visit requests found</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  visitRequests.map((request) => (
+                    <tr key={request.id} className={`${darkClasses.tableRow}`}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className={`text-sm font-medium ${darkClasses.text}`}>
+                            {request.user_username || request.first_name || 'Unknown User'}
+                          </div>
+                          <div className={`text-sm ${darkClasses.textMuted}`}>
+                            {request.user_email}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className={`text-sm font-medium ${darkClasses.text}`}>
+                            {request.boarding_title || request.house_title}
+                          </div>
+                          <div className={`text-sm ${darkClasses.textMuted}`}>
+                            {request.boarding_address || request.address}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className={`text-sm font-medium ${darkClasses.text}`}>
+                            {request.owner_name}
+                          </div>
+                          <div className={`text-sm ${darkClasses.textMuted}`}>
+                            {request.owner_phone}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className={`text-sm ${darkClasses.text}`}>
+                          {formatDate(request.requested_date)}
+                        </div>
+                        {request.requested_time && (
+                          <div className={`text-xs ${darkClasses.textMuted}`}>
+                            {request.requested_time}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`text-sm ${darkClasses.text} max-w-xs truncate`}>
+                          {request.message || 'No message'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openEmailModal(
+                              { 
+                                name: request.user_username || request.first_name, 
+                                email: request.user_email 
+                              },
+                              `Regarding your visit request for ${request.boarding_title || request.house_title}`
+                            )}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 flex items-center"
+                          >
+                            <Mail size={12} className="mr-1" />
+                            Email User
+                          </button>
+                          <button
+                            onClick={() => openEmailModal(
+                              { 
+                                name: request.owner_name, 
+                                email: request.owner_email 
+                              },
+                              `Regarding visit request for ${request.boarding_title || request.house_title}`
+                            )}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 flex items-center"
+                          >
+                            <Mail size={12} className="mr-1" />
+                            Email Owner
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Requests', value: visitRequests.length, color: 'blue' },
+            { label: 'Pending', value: visitRequests.filter(r => r.status === 'pending').length, color: 'yellow' },
+            { label: 'Confirmed', value: visitRequests.filter(r => r.status === 'confirmed').length, color: 'green' },
+            { label: 'Rejected', value: visitRequests.filter(r => r.status === 'rejected').length, color: 'red' }
+          ].map((stat, index) => (
+            <div key={index} className={`${darkClasses.card} rounded-lg shadow border ${darkClasses.border} p-4`}>
+              <div className={`text-2xl font-bold text-${stat.color}-600`}>
+                {stat.value}
+              </div>
+              <div className={`text-sm ${darkClasses.textMuted}`}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     if (loading) return <div className="text-center py-8">Loading...</div>;
     if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
@@ -1784,6 +2055,8 @@ const AdminDashboard = () => {
         return renderOwners();
       case 'houses':
         return renderHouses();
+      case 'visitRequests':
+        return renderVisitRequests();
       case 'boarding':
         return renderBoardingHouses();
       case 'comments':
@@ -1912,7 +2185,124 @@ const AdminDashboard = () => {
   />
 )}
 
+{/* Email Modal */}
+<EmailModal
+  isOpen={emailModalOpen}
+  onClose={() => setEmailModalOpen(false)}
+  recipient={emailRecipient}
+  subject={emailSubject}
+  setSubject={setEmailSubject}
+  message={emailMessage}
+  setMessage={setEmailMessage}
+  onSend={handleSendEmail}
+/>
 
+    </div>
+  );
+};
+
+// Email Modal Component
+const EmailModal = ({ 
+  isOpen, 
+  onClose, 
+  recipient, 
+  subject,
+  setSubject,
+  message,
+  setMessage,
+  onSend,
+  sending = false
+}) => {
+  if (!isOpen) return null;
+
+  const handleSend = () => {
+    if (!subject.trim() || !message.trim()) {
+      alert('Please fill in both subject and message');
+      return;
+    }
+    onSend();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold flex items-center">
+            <Mail className="mr-2" size={20} />
+            Send Email
+          </h3>
+          <button 
+            onClick={onClose} 
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        {recipient && (
+          <div className="mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="text-sm text-gray-600">To:</div>
+              <div className="font-medium">{recipient.name || recipient.username}</div>
+              <div className="text-sm text-gray-600">{recipient.email}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Subject
+            </label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter email subject"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Message
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={8}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your message"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center"
+          >
+            {sending ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send size={16} className="mr-2" />
+                Send Email
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

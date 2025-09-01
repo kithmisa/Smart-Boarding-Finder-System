@@ -128,35 +128,73 @@ const updateUserProfile = async (req, res) => {
 
     if (!username || !email || !firstName || !lastName) {
       console.log('❌ Missing required fields:', { 
+        username: username || 'MISSING', 
+        email: email || 'MISSING', 
+        firstName: firstName || 'MISSING', 
+        lastName: lastName || 'MISSING',
         hasUsername: !!username, 
         hasEmail: !!email, 
         hasFirstName: !!firstName, 
         hasLastName: !!lastName 
       });
-      return res.status(400).json({ error: 'Username, email, first name and last name are required' });
+      return res.status(400).json({ 
+        error: 'Username, email, first name and last name are required',
+        details: {
+          username: !!username,
+          email: !!email,
+          firstName: !!firstName,
+          lastName: !!lastName
+        }
+      });
     }
 
     const connection = await db.getConnection();
     
     try {
-      // Check if username already exists for other users
-      const [existingUsername] = await connection.execute(
-        'SELECT id FROM users WHERE username = ? AND id != ?',
-        [username, userId]
+      // Fetch current user values to determine if fields actually changed
+      const [currentUserRows] = await connection.execute(
+        'SELECT username, email FROM users WHERE id = ?',
+        [userId]
       );
 
-      if (existingUsername.length > 0) {
-        return res.status(400).json({ error: 'Username already exists' });
+      if (currentUserRows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
       }
 
-      // Check if email already exists for other users
-      const [existingEmail] = await connection.execute(
-        'SELECT id FROM users WHERE email = ? AND id != ?',
-        [email, userId]
-      );
+      const currentUser = currentUserRows[0];
+      const usernameChanged = username !== currentUser.username;
+      const emailChanged = email !== currentUser.email;
 
-      if (existingEmail.length > 0) {
-        return res.status(400).json({ error: 'Email already exists for another user' });
+      // Check if username already exists for other users (only if changed)
+      if (usernameChanged) {
+        const [existingUsername] = await connection.execute(
+          'SELECT id FROM users WHERE username = ? AND id != ?',
+          [username, userId]
+        );
+  
+        if (existingUsername.length > 0) {
+          return res.status(400).json({ error: 'Username already exists' });
+        }
+      }
+
+      // Check if email already exists for other users (only if changed)
+      if (emailChanged) {
+        console.log('🔍 Checking email conflicts:', { email, userId, userIdType: typeof userId });
+        const [existingEmail] = await connection.execute(
+          'SELECT id FROM users WHERE email = ? AND id != ?',
+          [email, userId]
+        );
+        
+        console.log('📊 Email check results:', { 
+          existingEmailCount: existingEmail.length,
+          existingEmailResults: existingEmail,
+          queryParams: [email, userId]
+        });
+  
+        if (existingEmail.length > 0) {
+          console.log('❌ Email conflict found for user:', existingEmail[0]);
+          return res.status(400).json({ error: 'Email already exists for another user' });
+        }
       }
 
       // Update user profile

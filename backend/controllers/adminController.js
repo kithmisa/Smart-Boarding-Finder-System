@@ -412,12 +412,110 @@ const syncEmailReplies = async (req, res) => {
   }
 };
 
+// Get all visit requests for admin
+const getAllVisitRequests = async (req, res) => {
+  try {
+    const [visitRequests] = await db.query(`
+      SELECT 
+        vr.*,
+        h.title as boarding_title,
+        h.address as boarding_address,
+        o.name as owner_name,
+        o.contact as owner_phone,
+        o.email as owner_email,
+        u.username as user_username,
+        u.first_name,
+        u.last_name,
+        u.email as user_email,
+        u.phone as user_phone
+      FROM visit_requests vr
+      JOIN houses h ON vr.boarding_id = h.id
+      LEFT JOIN owner o ON h.owner_id = o.id
+      JOIN users u ON vr.user_id = u.id
+      ORDER BY vr.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      visitRequests: visitRequests
+    });
+  } catch (error) {
+    console.error('Error fetching visit requests:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch visit requests'
+    });
+  }
+};
+
+// Send email from admin
+const sendEmail = async (req, res) => {
+  try {
+    const { to, subject, message, recipientName } = req.body;
+
+    if (!to || !subject || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: to, subject, message'
+      });
+    }
+
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: to,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px 15px 0 0;">
+            <h1 style="color: white; margin: 0; text-align: center;">Smart Boarding Finder</h1>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 0 0 15px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <p style="color: #333; font-size: 16px;">Hello ${recipientName || 'User'},</p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #667eea;">
+              ${message.replace(/\n/g, '<br>')}
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+              <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                This message was sent by the Smart Boarding Finder administration team.
+              </p>
+              <p style="color: #6b7280; font-size: 14px; margin: 5px 0 0 0;">
+                If you have any questions, please contact us at ${process.env.EMAIL_USER}
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    
+    res.json({
+      success: true,
+      message: 'Email sent successfully'
+    });
+
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send email: ' + error.message
+    });
+  }
+};
+
 module.exports = {
   loginAdmin,
   getAllUsers,  
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getAllVisitRequests,
+  sendEmail,
   confirmHouse,
   deleteUser,  
   deleteOwner,

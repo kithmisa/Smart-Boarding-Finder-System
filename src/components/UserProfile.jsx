@@ -557,14 +557,20 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       }
       
       // Clean the data to remove any circular references or invalid properties
-      // Map frontend field names to backend field names
+      // Map frontend field names to backend field names and ensure required fields are not empty
       const cleanData = {
-        username: dataToUpdate.username || '',
-        email: dataToUpdate.email || '',
-        firstName: dataToUpdate.first_name || '',  // Map to backend field name
-        lastName: dataToUpdate.last_name || '',   // Map to backend field name
-        phone: dataToUpdate.phone || ''
+        username: dataToUpdate.username || userProfile.username || '',
+        email: dataToUpdate.email || userProfile.email || '',
+        firstName: dataToUpdate.first_name || userProfile.first_name || '',  // Map to backend field name
+        lastName: dataToUpdate.last_name || userProfile.last_name || '',   // Map to backend field name
+        phone: dataToUpdate.phone || userProfile.phone || ''
       };
+      
+      // Validate required fields
+      if (!cleanData.username || !cleanData.email || !cleanData.firstName || !cleanData.lastName) {
+        alert('Username, email, first name, and last name are required');
+        return;
+      }
       
       console.log('Saving profile data to database (mapped):', cleanData);
       console.log('Request URL:', `http://localhost:5000/api/users/profile/${userId}`);
@@ -614,7 +620,14 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
           console.error('Profile update failed - raw response:', errorText);
           errorData = { error: errorText || 'Unknown error' };
         }
-        alert(`Failed to update profile: ${errorData.error || errorData.message || 'Unknown error'}`);
+        
+        // Handle specific error cases with more user-friendly messages
+        let errorMessage = errorData.error || errorData.message || 'Unknown error';
+        if (errorMessage.includes('Email already exists')) {
+          errorMessage = 'This email address is already registered to another user. Please use a different email address.';
+        }
+        
+        alert(`Failed to update profile: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error updating profile:', error);

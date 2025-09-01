@@ -7,6 +7,8 @@ const {
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getAllVisitRequests,
+  sendEmail,
   deleteUser,
   deleteOwner,
   deleteComment,
@@ -35,6 +37,12 @@ router.get('/comments', getAllComments);
 
 // Get all houses (including pending/approved status)
 router.get('/houses', getAllHouses);
+
+// Get all visit requests
+router.get('/visit-requests', getAllVisitRequests);
+
+// Send email
+router.post('/send-email', sendEmail);
 
 // ✅ ALIAS: boarding-houses route (for compatibility)
 router.get('/boarding-houses', getAllHouses);

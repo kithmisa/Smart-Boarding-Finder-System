@@ -663,7 +663,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                       setOtpMsg('');
                       const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: otpEmail, otp: otpCode })
+                        body: JSON.stringify({ email: otpEmail, otp: otpCode, purpose: 'verification' })
                       });
                       const raw = await res.text();
                       let data; try { data = JSON.parse(raw); } catch { data = { error: raw }; }
@@ -689,7 +689,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                       setOtpMsg('');
                       const res = await fetch(`http://localhost:5000/api/auth/send-otp`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: otpEmail })
+                        body: JSON.stringify({ email: otpEmail, purpose: 'verification' })
                       });
                       const raw = await res.text();
                       let data; try { data = JSON.parse(raw); } catch { data = { error: raw }; }
