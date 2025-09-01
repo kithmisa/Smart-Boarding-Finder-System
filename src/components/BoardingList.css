@@ -59,6 +59,22 @@
   color: #A0522D;
 }
 
+.sorting-info {
+  margin-top: 10px;
+}
+
+.sort-badge {
+  background: rgba(255, 215, 0, 0.2);
+  color: #8B4513;
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
 .filter-container {
   display: flex;
   justify-content: center;
@@ -97,6 +113,44 @@
   box-shadow: 0 5px 20px rgba(139, 69, 19, 0.4);
 }
 
+/* Rating Section Styles */
+.rating-section {
+  margin-bottom: 3px;
+}
+
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stars {
+  font-size: 8px;
+  color: #FFD700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.rating-text {
+  font-size: 14px;
+  color: #8B4513;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+}
+
+.no-rating {
+  font-size: 12px;
+  color: #85756e85;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.979);
+  padding: 4px 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+}
+
 /* Boarding grid container */
 .boarding-grid-container {
   display: grid;
@@ -115,7 +169,7 @@
   cursor: pointer;
  /* border: 3px solid rgba(243, 241, 238, 0.432);*/
   position: relative;
-  height:500px;
+  height:520px;
 }
 
 .boarding-card::before {
@@ -189,15 +243,15 @@
   position: absolute;
   top: 15px;
   left: 15px;
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+  background: linear-gradient(135deg, #09b8346e, #26c0074b);
   color: white;
   padding: 8px 15px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgb(8, 245, 28);
   animation: pulse 2s infinite;
 }
 
@@ -210,15 +264,15 @@
   position: absolute;
   top: 15px;
   right: 15px;
-  background: linear-gradient(135deg, #1e3f3d, #45B7D1);
+  background: linear-gradient(135deg, #1008554f, #45b7d175);
   color: white;
   padding: 8px 15px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 700;
-  backdrop-filter: blur(10px);
+  font-weight: 400;
+  backdrop-filter: blur(20px);
   box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgb(9, 25, 248);
 }
 
 /* Card content - Enhanced with cute icons and better layout */
@@ -231,11 +285,11 @@
 .card-content h3 {
   font-size: 1.3rem;
   font-weight: 800;
-  margin-bottom: 8px;
-  color: #8B4513;
+  margin-bottom: 4px;
+  color: #746908a4;
   text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.1);
   position: relative;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 .card-content h3::before {
@@ -316,15 +370,31 @@
 }
 
 .availability-label.short-term {
-  background: linear-gradient(135deg, #FFEAA7, #FDCB6E);
+  background: linear-gradient(135deg, #f3e30565, #05d4f888);
   color: #8B4513;
-  border: 2px solid rgba(253, 203, 110, 0.6);
+  border: 2px solid rgba(193, 245, 5, 0.945);
 }
 
 .availability-label.long-term {
-  background: linear-gradient(135deg, #A8E6CF, #88D8C0);
+  background: linear-gradient(135deg, #f1da0281, #88D8C0);
   color: #2D3748;
   border: 2px solid rgba(168, 230, 207, 0.6);
+}
+
+.availability-label.unavailable {
+  background: linear-gradient(135deg, #b90a1b38, #eb051c2a);
+  color: #8B0000;
+  border: 2px solid rgba(255, 138, 149, 0.6);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.availability-label.unavailable .available-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: #3d1515;
+  opacity: 0.9;
+  margin-top: 0px;
 }
 
 .availability-label:hover {
@@ -338,7 +408,7 @@
   padding: 12px;
   background: linear-gradient(135deg, rgba(244, 164, 96, 0.1), rgba(255, 250, 240, 0.3));
   border-radius: 10px;
-  border-left: 4px solid #F4A460;
+  border-left: 4px solid #ad7804;
   position: relative;
   overflow: hidden;
 }

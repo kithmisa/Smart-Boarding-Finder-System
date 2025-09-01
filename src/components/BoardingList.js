@@ -10,6 +10,7 @@ const BoardingList = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchFilters, setSearchFilters] = useState({});
   const [originalHouses, setOriginalHouses] = useState([]);
+  const [housesWithRatings, setHousesWithRatings] = useState([]);
   // In-memory auth state (avoid localStorage)
   const [authData, setAuthData] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,22 +36,18 @@ const BoardingList = () => {
         }
         return res.json();
       })
-      .then(data => {
-        console.log('Fetched approved houses:', data);
+      .then(response => {
+        console.log('Fetched approved houses response:', response);
         
-        // 🔍 DEBUG: Log each house's shortTerm property
-        data.forEach((house, index) => {
-          console.log(`House ${index + 1}:`, {
-            title: house.title,
-            shortTerm: house.shortTerm,
-            shortTermType: typeof house.shortTerm,
-            shortTermValue: JSON.stringify(house.shortTerm)
-          });
-        });
+        // Handle both response formats: direct array or {success: true, houses: [...]}
+        const data = response.houses || response;
+        console.log('Processed houses data:', data);
         
-        setHouses(data);
-        setFilteredHouses(data);
-        setOriginalHouses(data);
+        // Log basic info for debugging if needed
+        console.log(`✅ Loaded ${data.length} approved houses (including all availability statuses)`);
+        
+        // Fetch ratings and sort houses by rating
+        fetchRatingsAndSort(data);
         setLoading(false);
       })
       .catch(err => {
@@ -99,6 +96,60 @@ const BoardingList = () => {
     
     setSearchFilters(filters);
   }, [location.search]);
+
+  // Fetch ratings for all houses and sort by rating
+  const fetchRatingsAndSort = async (housesData) => {
+    try {
+      const housesWithRatingsData = await Promise.all(
+        housesData.map(async (house) => {
+          try {
+            const response = await fetch(`http://localhost:5000/api/reviews/boarding/${house.id}`);
+            if (response.ok) {
+              const data = await response.json();
+              return {
+                ...house,
+                averageRating: data.averageRating || 0,
+                reviewCount: data.reviews ? data.reviews.length : 0
+              };
+            } else {
+              return {
+                ...house,
+                averageRating: 0,
+                reviewCount: 0
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching ratings for house ${house.id}:`, error);
+            return {
+              ...house,
+              averageRating: 0,
+              reviewCount: 0
+            };
+          }
+        })
+      );
+
+      // Sort houses by rating (highest to lowest), then by review count
+      const sortedHouses = housesWithRatingsData.sort((a, b) => {
+        if (b.averageRating !== a.averageRating) {
+          return b.averageRating - a.averageRating;
+        }
+        // If ratings are equal, sort by review count (more reviews = higher priority)
+        return b.reviewCount - a.reviewCount;
+      });
+
+      setHousesWithRatings(sortedHouses);
+      setHouses(sortedHouses);
+      setFilteredHouses(sortedHouses);
+      setOriginalHouses(sortedHouses);
+    } catch (error) {
+      console.error('Error fetching ratings:', error);
+      // Fallback to original data if rating fetch fails
+      setHouses(housesData);
+      setFilteredHouses(housesData);
+      setOriginalHouses(housesData);
+    }
+  };
 
   // Apply search filters to houses
   const applySearchFilters = (housesToFilter, filters) => {
@@ -283,8 +334,17 @@ const BoardingList = () => {
         break;
     }
     
+    // Maintain rating-based sorting after filtering
+    const sortedFiltered = [...filtered].sort((a, b) => {
+      if (b.averageRating !== a.averageRating) {
+        return b.averageRating - a.averageRating;
+      }
+      // If ratings are equal, sort by review count (more reviews = higher priority)
+      return b.reviewCount - a.reviewCount;
+    });
+    
     setHouses(applySearchFilters(originalHouses, searchFilters)); // Update houses for count calculation
-    setFilteredHouses(filtered);
+    setFilteredHouses(sortedFiltered);
   }, [originalHouses, searchFilters, activeFilter]);
 
   // 🔧 IMPROVED: More robust filter function
@@ -438,7 +498,7 @@ const BoardingList = () => {
           </div>
 
           <div className="no-houses-container">
-            <h3>No {activeFilter === 'all' ? 'Boarding Houses' : activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1).replace('-', '-') + ' Properties'} Available</h3>
+            <h3>No {activeFilter === 'all' ? 'Boarding Houses' : activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1).replace('-', '-') + ' Properties'} Found</h3>
             <p>Try a different filter or check back later!</p>
           </div>
         </div>
@@ -450,8 +510,12 @@ const BoardingList = () => {
     <div className="boarding-bg-wrapper">
       <div className="boarding-bg-overlay">
         <div className="boarding-header">
-          <h2>Available Boarding Houses</h2>
-          <p>{filteredHouses.length} {activeFilter === 'all' ? 'approved properties' : activeFilter + ' properties'} available</p>
+          
+          <h2>Boarding Houses</h2>
+          <p>{filteredHouses.length} {activeFilter === 'all' ? 'approved properties' : activeFilter + ' properties'} availabble</p>
+          <div className="sorting-info">
+            <span className="sort-badge">⭐ “Find Your Ideal Boarding Today.</span>
+          </div>
         </div>
 
         {/* Active Search Filters Display */}
@@ -523,7 +587,7 @@ const BoardingList = () => {
                       className="card-image"
                       onError={(e) => {
                         console.log('Image load error for:', e.target.src);
-                        e.target.src = '/placeholder-house.jpg';
+                        e.target.src = '/image.png'; // Use the existing background image as fallback
                       }}
                     />
                   ) : (
@@ -532,8 +596,7 @@ const BoardingList = () => {
                 })()}
 
                 {/* 🔧 More robust shortTerm check */}
-                {(house.shortTerm === true || house.shortTerm === 'true' || house.shortTerm === 1 || house.shortTerm === '1') && 
-                 house.availabilityStatus === 'available' && (
+                {(house.shortTerm === true || house.shortTerm === 'true' || house.shortTerm === 1 || house.shortTerm === '1') && (
                   <div className="short-term-badge">
                     📅 Short-term
                   </div>
@@ -564,15 +627,51 @@ const BoardingList = () => {
 
               <div className="card-content">
                 <h3>{house.title}</h3>
+                
+                {/* Rating Display */}
+                <div className="rating-section">
+                  {house.averageRating > 0 ? (
+                    <div className="rating-display">
+                      <span className="stars">
+                        {'⭐'.repeat(Math.floor(house.averageRating))}
+                        {house.averageRating % 1 !== 0 && '⭐'}
+                      </span>
+                      <span className="rating-text">
+                        {house.averageRating.toFixed(1)} ({house.reviewCount} {house.reviewCount === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="no-rating">No reviews yet</div>
+                  )}
+                </div>
+                
                 <p><strong>Location:</strong> {house.location}, {house.city}</p>
 
-                {house.availabilityStatus === 'available' && (
-                  <div className="card-availability-badge-inline">
-                    <span className={`availability-label ${(house.shortTerm === true || house.shortTerm === 'true' || house.shortTerm === 1 || house.shortTerm === '1') ? 'short-term' : 'long-term'}`}>
-                      🏠 Available
-                    </span>
-                  </div>
-                )}
+                {/* Availability Status Badge */}
+                <div className="card-availability-badge-inline">
+                  {/* Handle cases where availabilityStatus might be undefined/null */}
+                  {(() => {
+                    const status = house.availabilityStatus || 'available'; // Default to available if not set
+                    const isAvailable = status.toLowerCase() === 'available'; // Case-insensitive comparison
+                    
+                    return isAvailable ? (
+                      <span className={`availability-label ${(house.shortTerm === true || house.shortTerm === 'true' || house.shortTerm === 1 || house.shortTerm === '1') ? 'short-term' : 'long-term'}`}>
+                        🏠 Available
+                      </span>
+                    ) : (
+                      <span className="availability-label unavailable">
+                        ⏳ Unavailable
+                        {house.availableDate && house.availableDate !== 'not set' && (
+                          <span className="available-date">
+                            <br />Available from: {new Date(house.availableDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })()}
+                  
+
+                </div>
                 
                 <div className="price-section">
                   <p className="main-price">

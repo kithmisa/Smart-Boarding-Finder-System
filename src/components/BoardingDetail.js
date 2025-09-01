@@ -31,6 +31,67 @@ const BoardingDetail = () => {
     amenities: 5
   });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [waitingListStatus, setWaitingListStatus] = useState(''); // 'idle', 'joined', 'loading'
+  const [showWaitingListForm, setShowWaitingListForm] = useState(false);
+  const [waitingListForm, setWaitingListForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [waitingListCount, setWaitingListCount] = useState(0);
+
+  // Check if house is in user's favorites
+  const checkFavoriteStatus = async () => {
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return;
+
+      const response = await fetch(`http://localhost:5000/api/users/favorites/check/${id}?userId=${userId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsFavorite(data.isFavorite);
+      }
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  };
+
+  // Check if user is already on waiting list
+  const checkWaitingListStatus = async () => {
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return;
+
+      const response = await fetch(`http://localhost:5000/api/waiting-list/check/${id}?userId=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.isOnWaitingList) {
+          setWaitingListStatus('joined');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking waiting list status:', error);
+    }
+  };
+
+  // Fetch waiting list count
+  const fetchWaitingListCount = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/waiting-list/house/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const activeCount = data.waitingList.filter(item => item.status === 'waiting').length;
+        setWaitingListCount(activeCount);
+      }
+    } catch (error) {
+      console.error('Error fetching waiting list count:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchHouse = async () => {
@@ -69,28 +130,10 @@ const BoardingDetail = () => {
       fetchHouse();
       checkFavoriteStatus();
       fetchReviews();
+      checkWaitingListStatus();
+      fetchWaitingListCount();
     }
   }, [id]);
-
-  // Check if house is in user's favorites
-  const checkFavoriteStatus = async () => {
-    try {
-      const userId = localStorage.getItem('user_id');
-      if (!userId) return;
-
-      const response = await fetch(`http://localhost:5000/api/users/favorites/check/${id}?userId=${userId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsFavorite(data.isFavorite);
-      }
-    } catch (error) {
-      console.error('Error checking favorite status:', error);
-    }
-  };
 
   // Toggle favorite status
   const toggleFavorite = async () => {
@@ -371,6 +414,89 @@ const BoardingDetail = () => {
     return tomorrow.toISOString().split('T')[0];
   };
 
+  // Join waiting list
+  const joinWaitingList = async () => {
+    try {
+      setWaitingListStatus('loading');
+      
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        alert('Please login to join the waiting list');
+        setWaitingListStatus('idle');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/waiting-list/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          houseId: parseInt(id),
+          userId: parseInt(userId),
+          name: waitingListForm.name,
+          email: waitingListForm.email,
+          phone: waitingListForm.phone,
+          message: waitingListForm.message
+        })
+      });
+
+      if (response.ok) {
+        setWaitingListStatus('joined');
+        setShowWaitingListForm(false);
+        alert('✅ Successfully joined the waiting list! You will be notified when this property becomes available.');
+      } else {
+        const errorData = await response.json();
+        alert(`❌ Failed to join waiting list: ${errorData.message || 'Unknown error'}`);
+        setWaitingListStatus('idle');
+      }
+    } catch (error) {
+      console.error('Error joining waiting list:', error);
+      alert('❌ Failed to join waiting list. Please try again.');
+      setWaitingListStatus('idle');
+    }
+  };
+
+  // Leave waiting list
+  const leaveWaitingList = async () => {
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) return;
+
+      const response = await fetch(`http://localhost:5000/api/waiting-list/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          houseId: parseInt(id),
+          userId: parseInt(userId)
+        })
+      });
+
+      if (response.ok) {
+        setWaitingListStatus('idle');
+        alert('✅ Removed from waiting list successfully.');
+      } else {
+        alert('❌ Failed to leave waiting list. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error leaving waiting list:', error);
+      alert('❌ Failed to leave waiting list. Please try again.');
+    }
+  };
+
+  // Populate waiting list form with user info
+  const populateWaitingListForm = () => {
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+      // Try to get user info from localStorage or fetch from API
+      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+      setWaitingListForm(prev => ({
+        ...prev,
+        name: userInfo.first_name && userInfo.last_name ? `${userInfo.first_name} ${userInfo.last_name}` : '',
+        email: userInfo.email || '',
+        phone: userInfo.phone || ''
+      }));
+    }
+  };
+
   return (
     <div
       className="relative flex-grow text-white min-h-screen"
@@ -421,6 +547,58 @@ const BoardingDetail = () => {
               <p className="text-xl text-gray-600 mb-4">
                 📍 {house?.address}, {house?.city}
               </p>
+              
+              {/* Availability Notice - Prominent Display */}
+              {house?.availabilityStatus && (house.availabilityStatus).toLowerCase() !== 'available' && (
+                <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                  <div className="flex items-center justify-center gap-3 text-red-800">
+                    <span className="text-2xl">⏳</span>
+                    <div>
+                      <div className="font-bold text-lg">Property Currently Unavailable</div>
+                      {house?.availableDate && (
+                        <div className="text-sm text-red-600">
+                          📅 Will be available from: {new Date(house.availableDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Waiting List Section */}
+                  <div className="mt-4 text-center">
+                    <div className="text-sm text-red-700 mb-3">
+                      Be the first to know when this property becomes available!
+                      {waitingListCount > 0 && (
+                        <div className="text-xs text-red-600 mt-1">
+                          📋 {waitingListCount} {waitingListCount === 1 ? 'person is' : 'people are'} already waiting
+                        </div>
+                      )}
+                    </div>
+                    
+                    {waitingListStatus === 'joined' ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-green-600 text-sm">✅ You're on the waiting list!</span>
+                        <button
+                          onClick={leaveWaitingList}
+                          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+                        >
+                          Leave List
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          populateWaitingListForm();
+                          setShowWaitingListForm(true);
+                        }}
+                        className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors hover:scale-105"
+                      >
+                        🚀 Join Waiting List
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex justify-center items-center gap-4 text-lg flex-wrap">
                 <span className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full">
                   🏠 {house?.type}
@@ -534,14 +712,25 @@ const BoardingDetail = () => {
                     <span className="text-green-600 font-bold ml-2">Rs. {house?.price}</span>
                   </div>
                   <div>
-                    <span className="font-semibold">Available:</span> 
-                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                      house?.availabilityStatus === 'available' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {house?.availabilityStatus}
-                    </span>
+                    <span className="font-semibold">Availability:</span> 
+                    <div className="ml-2 flex flex-col gap-1">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        (house?.availabilityStatus || 'available').toLowerCase() === 'available' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {(house?.availabilityStatus || 'available').toLowerCase() === 'available' ? '🏠 Available' : '⏳ Unavailable'}
+                      </span>
+                      
+                      {/* Show available date if property is unavailable */}
+                      {house?.availabilityStatus && 
+                       (house.availabilityStatus).toLowerCase() !== 'available' && 
+                       house?.availableDate && (
+                        <div className="text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded border">
+                          📅 Available from: {new Date(house.availableDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
             
@@ -569,29 +758,53 @@ const BoardingDetail = () => {
                 )}
 
                 {/* Visit Date Selection */}
-                <div className="mt-6 p-4 bg-green-100 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-gray-800 mb-3">Book a Visit</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Visit Date
-                      </label>
-                      <input
-                        type="date"
-                        value={visitDate}
-                        onChange={(e) => setVisitDate(e.target.value)}
-                        min={getTomorrowDate()}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
-                      />
+                <div className={`mt-6 p-4 rounded-lg border ${
+                  (house?.availabilityStatus || 'available').toLowerCase() === 'available' 
+                    ? 'bg-green-100 border-green-200' 
+                    : 'bg-gray-100 border-gray-200'
+                }`}>
+                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Calendar className="text-green-600" />
+                    Book a Visit
+                    {((house?.availabilityStatus || 'available').toLowerCase() !== 'available') && (
+                      <span className="text-sm text-red-600 font-normal">(Currently Unavailable)</span>
+                    )}
+                  </h3>
+                  
+                  {(house?.availabilityStatus || 'available').toLowerCase() === 'available' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Visit Date
+                        </label>
+                        <input
+                          type="date"
+                          value={visitDate}
+                          onChange={(e) => setVisitDate(e.target.value)}
+                          min={getTomorrowDate()}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
+                        />
+                      </div>
+                      <button
+                        onClick={handleVisitBooking}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+                      >
+                        <Calendar size={18} />
+                        Book Visit
+                      </button>
                     </div>
-                    <button
-                      onClick={handleVisitBooking}
-                      className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
-                    >
-                      <Calendar size={18} />
-                      Book Visit
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-gray-600 mb-2">
+                        This property is currently unavailable for visits.
+                      </div>
+                      {house?.availableDate && (
+                        <div className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded border">
+                          📅 Will be available from: {new Date(house.availableDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -633,55 +846,79 @@ const BoardingDetail = () => {
                     )}
 
                     {/* Book Stay Section */}
-                    <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <h3 className="font-semibold text-gray-800 mb-3">Book a Stay</h3>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Check-in Date
-                            </label>
-                            <input
-                              type="date"
-                              value={stayDates.checkIn}
-                              onChange={(e) => setStayDates(prev => ({ ...prev, checkIn: e.target.value }))}
-                              min={getTomorrowDate()}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-gray-900"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Check-out Date
-                            </label>
-                            <input
-                              type="date"
-                              value={stayDates.checkOut}
-                              onChange={(e) => setStayDates(prev => ({ ...prev, checkOut: e.target.value }))}
-                              min={stayDates.checkIn || getTomorrowDate()}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-gray-900"
-                            />
-                          </div>
-                        </div>
-                        
-                        {stayDates.checkIn && stayDates.checkOut && (
-                          <div className="bg-blue-50 p-3 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                              <strong>Total Price:</strong> Rs. {calculateStayPrice()}
-                            </p>
-                            <p className="text-xs text-blue-600 mt-1">
-                              Advance Payment: Rs. {calculateAdvancePayment()}
-                            </p>
-                          </div>
+                    <div className={`mt-6 p-4 rounded-lg border ${
+                      (house?.availabilityStatus || 'available').toLowerCase() === 'available' 
+                        ? 'bg-orange-50 border-orange-200' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <Clock className="text-orange-600" />
+                        Book a Stay
+                        {((house?.availabilityStatus || 'available').toLowerCase() !== 'available') && (
+                          <span className="text-sm text-red-600 font-normal">(Currently Unavailable)</span>
                         )}
+                      </h3>
+                      
+                      {(house?.availabilityStatus || 'available').toLowerCase() === 'available' ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Check-in Date
+                              </label>
+                              <input
+                                type="date"
+                                value={stayDates.checkIn}
+                                onChange={(e) => setStayDates(prev => ({ ...prev, checkIn: e.target.value }))}
+                                min={getTomorrowDate()}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-gray-900"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Check-out Date
+                              </label>
+                              <input
+                                type="date"
+                                value={stayDates.checkOut}
+                                onChange={(e) => setStayDates(prev => ({ ...prev, checkOut: e.target.value }))}
+                                min={stayDates.checkIn || getTomorrowDate()}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-gray-900"
+                              />
+                            </div>
+                          </div>
+                          
+                          {stayDates.checkIn && stayDates.checkOut && (
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <p className="text-sm text-blue-800">
+                                <strong>Total Price:</strong> Rs. {calculateStayPrice()}
+                              </p>
+                              <p className="text-xs text-blue-600 mt-1">
+                                Advance Payment: Rs. {calculateAdvancePayment()}
+                              </p>
+                            </div>
+                          )}
 
-                        <button
-                          onClick={handleStayBooking}
-                          className="w-full bg-orange-400 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
-                        >
-                          <Clock size={18} />
-                          Book Stay
-                        </button>
-                      </div>
+                          <button
+                            onClick={handleStayBooking}
+                            className="w-full bg-orange-400 hover:bg-orange-600 text-white py-3 px-4 rounded-lg font-semibold transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+                          >
+                            <Clock size={18} />
+                            Book Stay
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <div className="text-gray-600 mb-2">
+                            This property is currently unavailable for short-term stays.
+                          </div>
+                          {house?.availableDate && (
+                            <div className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded border">
+                              📅 Will be available from: {new Date(house.availableDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1240,6 +1477,103 @@ const BoardingDetail = () => {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Waiting List Form Modal */}
+      {showWaitingListForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Join Waiting List</h3>
+              <button
+                onClick={() => setShowWaitingListForm(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Be the first to know when this property becomes available! You'll get priority notification.
+            </p>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={waitingListForm.name}
+                  onChange={(e) => setWaitingListForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={waitingListForm.email}
+                  onChange={(e) => setWaitingListForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={waitingListForm.phone}
+                  onChange={(e) => setWaitingListForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Message (Optional)
+                </label>
+                <textarea
+                  value={waitingListForm.message}
+                  onChange={(e) => setWaitingListForm(prev => ({ ...prev, message: e.target.value }))}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500"
+                  placeholder="Any specific requirements or questions?"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowWaitingListForm(false)}
+                className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={joinWaitingList}
+                disabled={waitingListStatus === 'loading' || !waitingListForm.name || !waitingListForm.email}
+                className={`flex-1 px-4 py-2 rounded font-medium transition-colors ${
+                  waitingListStatus === 'loading' || !waitingListForm.name || !waitingListForm.email
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                {waitingListStatus === 'loading' ? 'Joining...' : 'Join Waiting List'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

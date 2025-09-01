@@ -29,15 +29,14 @@ router.post('/', upload.array('images', 10), addHouse);
 // ✅ GET - Get all houses (for admin - includes all statuses)
 router.get('/all', getAllHouses);
 
-// ✅ GET - Get APPROVED houses only (for boarding page)
+// ✅ GET - Get APPROVED houses only (for boarding page) - includes all availability statuses
 router.get('/approved', async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT h.*, o.name as owner_name, o.contact as owner_phone 
       FROM houses h 
       LEFT JOIN owner o ON h.owner_id = o.id 
-      WHERE h.status = 'approved' AND h.confirmed = 1 
-      AND h.availabilityStatus = 'available'
+      WHERE h.status = 'approved' AND h.confirmed = 1
       ORDER BY h.created_at DESC
     `);
 
@@ -238,22 +237,26 @@ router.put('/:id/availability', async (req, res) => {
   
   try {
     const validStatuses = ['available', 'occupied', 'unavailable'];
-    if (!validStatuses.includes(availabilityStatus)) {
+    const normalizedStatus = availabilityStatus.toLowerCase();
+    if (!validStatuses.includes(normalizedStatus)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid availability status. Must be: available, occupied, or unavailable' 
       });
     }
     
+    // Convert to proper case for database consistency
+    const dbStatus = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+    
     let updateQuery;
     let queryParams;
     
     if (availableDate) {
       updateQuery = 'UPDATE houses SET availabilityStatus = ?, availableDate = ? WHERE id = ?';
-      queryParams = [availabilityStatus, availableDate, id];
+      queryParams = [dbStatus, availableDate, id];
     } else {
       updateQuery = 'UPDATE houses SET availabilityStatus = ?, availableDate = NULL WHERE id = ?';
-      queryParams = [availabilityStatus, id];
+      queryParams = [dbStatus, id];
     }
     
     const [result] = await db.query(updateQuery, queryParams);
@@ -263,6 +266,36 @@ router.put('/:id/availability', async (req, res) => {
         success: false, 
         message: 'House not found' 
       });
+    }
+    
+    // If property becomes available, notify users on waiting list
+    if (normalizedStatus === 'available') {
+      try {
+        // Get all users on waiting list for this house
+        const [waitingList] = await db.query(
+          'SELECT wl.*, h.title as house_title FROM waiting_list wl JOIN houses h ON wl.house_id = h.id WHERE wl.house_id = ? AND wl.status = "waiting"',
+          [id]
+        );
+        
+        if (waitingList.length > 0) {
+          console.log(`🏠 Property ${id} is now available! Notifying ${waitingList.length} users on waiting list`);
+          
+          // Update waiting list status to notified
+          await db.query(
+            'UPDATE waiting_list SET status = "notified", notified_at = NOW() WHERE house_id = ? AND status = "waiting"',
+            [id]
+          );
+          
+          // Here you could add email notification logic
+          // For now, we'll just log it
+          waitingList.forEach(user => {
+            console.log(`📧 Notifying user ${user.name} (${user.email}) that ${user.house_title} is now available!`);
+          });
+        }
+      } catch (notifyError) {
+        console.error('⚠️ Error notifying waiting list users:', notifyError);
+        // Don't fail the main request if notification fails
+      }
     }
     
     res.json({ 

@@ -80,6 +80,7 @@ const HouseDetails = () => {
   const [myListings, setMyListings] = useState([]);
   const [loadingListings, setLoadingListings] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(null);
  
   // ✅ NEW: Smooth scrolling and navigation states
@@ -137,6 +138,64 @@ const HouseDetails = () => {
       total: listings.length
     };
     setStatusStats(stats);
+  };
+
+  // ✅ NEW: Handle edit property - navigate to form with data
+  const handleEditProperty = (property) => {
+    console.log('Editing property:', property);
+    
+    // Parse images - if they're URLs from database, we'll handle them differently in display
+    let parsedImages = [];
+    try {
+      if (Array.isArray(property.images)) {
+        parsedImages = property.images;
+      } else if (typeof property.images === 'string') {
+        parsedImages = JSON.parse(property.images || '[]');
+      }
+    } catch (error) {
+      console.warn('Error parsing images:', error);
+      parsedImages = [];
+    }
+    
+    // Populate form with existing property data
+    setFormData({
+      ...property,
+      features: Array.isArray(property.features) ? property.features : 
+                (typeof property.features === 'string' ? JSON.parse(property.features || '[]') : []),
+      shortFeatures: Array.isArray(property.shortFeatures) ? property.shortFeatures : 
+                     (typeof property.shortFeatures === 'string' ? JSON.parse(property.shortFeatures || '[]') : []),
+      images: parsedImages,
+      owner_id: owner_id || property.owner_id
+    });
+    
+    // Set edit mode
+    setIsEditMode(true);
+    setEditingProperty(property);
+    
+    // Navigate to add-property section (which will now be in edit mode)
+    setActiveSection('add-property');
+    scrollToSection('add-property');
+  };
+
+  // ✅ NEW: Reset form and exit edit mode
+  const resetFormAndExitEdit = () => {
+    setFormData({
+      title: '',
+      roomType: '',
+      genderAllowed: '',
+      price: '',
+      address: '',
+      city: '',
+      type: '',
+      location: '',
+      highlights: '',
+      features: [],
+      shortFeatures: [],
+      images: [],
+      owner_id: owner_id
+    });
+    setIsEditMode(false);
+    setEditingProperty(null);
   };
 
   // ✅ NEW: Get status display info
@@ -292,6 +351,80 @@ const HouseDetails = () => {
     } catch (error) {
       console.error('❌ Property submission error:', error);
       alert('❌ Failed to submit property. Please try again.');
+    }
+  };
+
+  // ✅ NEW: Update existing property function
+  const updateProperty = async (currentOwnerId) => {
+    try {
+      // ✅ Debug: Log what we're updating
+      console.log('Updating property ID:', editingProperty.id);
+      console.log('Updating property with owner_id:', parseInt(currentOwnerId));
+      console.log('Form data:', formData);
+      
+      // ✅ Prepare update data (using JSON for non-file fields)
+      const updateData = {
+        title: formData.title,
+        roomType: formData.roomType,
+        genderAllowed: formData.genderAllowed,
+        price: formData.price,
+        address: formData.address,
+        city: formData.city,
+        type: formData.type,
+        location: formData.location,
+        highlights: formData.highlights,
+        shortTerm: formData.shortTerm,
+        pricePerNight: formData.pricePerNight || '',
+        description: formData.description || '',
+        availabilityStatus: formData.availabilityStatus,
+        availableDate: formData.availableDate
+      };
+
+      console.log('Sending update data:', updateData);
+
+      const response = await fetch(`http://localhost:5000/api/houses/${editingProperty.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('❌ Server Response:', errText);
+        console.error('❌ Response Status:', response.status);
+        throw new Error(`Failed to update property: ${response.status} ${errText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Property update success:', result);
+      
+      // ✅ Handle features and images separately if needed
+      if (formData.features.length > 0 || formData.shortFeatures.length > 0) {
+        console.log('Note: Features update may require separate API call');
+      }
+      
+      // ✅ Handle image updates separately if there are new files
+      const hasNewImages = formData.images.some(img => img instanceof File);
+      if (hasNewImages) {
+        console.log('Note: Image updates may require separate API call');
+        // For now, just log this - we can implement separate image update later
+      }
+      
+      alert('✅ Property updated successfully!');
+      
+      // ✅ Use the reset function to clean up
+      resetFormAndExitEdit();
+      
+      // ✅ Refresh listings and navigate back
+      fetchMyListings();
+      setActiveSection('my-listings');
+      scrollToSection('my-listings');
+      
+    } catch (error) {
+      console.error('❌ Property update error:', error);
+      alert(`❌ Failed to update property: ${error.message}`);
     }
   };
 
@@ -576,9 +709,10 @@ const HouseDetails = () => {
       return;
     }
 
-    // ✅ Image validation - require at least 3 images
-    if (formData.images.length < 3) {
-      alert('❌ Please upload at least 3 images to proceed.');
+    // ✅ Image validation - require at least 3 images for new properties, at least 1 for edits
+    const minImages = isEditMode ? 1 : 3;
+    if (formData.images.length < minImages) {
+      alert(`❌ Please upload at least ${minImages} image${minImages > 1 ? 's' : ''} to proceed.`);
       return;
     }
 
@@ -593,20 +727,26 @@ const HouseDetails = () => {
       return;
     }
 
-    // ✅ FIXED: Check bank details dynamically before each submission
-    console.log('Current hasBankDetails state:', hasBankDetails);
-    const currentBankStatus = await checkBankDetails();
-    console.log('Fresh bank status check:', currentBankStatus);
+    // ✅ FIXED: Check bank details dynamically before each submission (skip for edits)
+    if (!isEditMode) {
+      console.log('Current hasBankDetails state:', hasBankDetails);
+      const currentBankStatus = await checkBankDetails();
+      console.log('Fresh bank status check:', currentBankStatus);
 
-    if (!currentBankStatus) {
-      console.log('Bank details missing, showing modal');
-      alert('⚠️ Bank details are required before submitting properties. Please add your bank details first.');
-      setShowBankModal(true);
-      return;
+      if (!currentBankStatus) {
+        console.log('Bank details missing, showing modal');
+        alert('⚠️ Bank details are required before submitting properties. Please add your bank details first.');
+        setShowBankModal(true);
+        return;
+      }
     }
 
-    // ✅ Proceed with property submission
-    await submitProperty(currentOwnerId);
+    // ✅ Proceed with property submission or update
+    if (isEditMode) {
+      await updateProperty(currentOwnerId);
+    } else {
+      await submitProperty(currentOwnerId);
+    }
   };
 
   // ✅ Delete property function
@@ -965,7 +1105,7 @@ const HouseDetails = () => {
                   <div className={`p-2 rounded-full ${activeSection === 'add-property' ? 'bg-white/20' : 'bg-blue-100 group-hover:bg-white/20'}`}>
                     <FaHome className={`text-lg ${activeSection === 'add-property' ? 'text-white' : 'text-blue-600 group-hover:text-white'}`} />
                   </div>
-                  <span className="font-bold">Add Property</span>
+                  <span className="font-bold">{isEditMode ? 'Edit Property' : 'Add Property'}</span>
                   {activeSection === 'add-property' && (
                     <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-400 rounded-full animate-pulse"></div>
                   )}
@@ -1075,9 +1215,13 @@ const HouseDetails = () => {
               <div className="col-span-full mb-4">
                 <div className="bg-blue-0 border-b-2 border-green-500 text-gray-700 p-4 rounded-r-lg">
                   <p className="font-semibold flex items-center gap-2">
-                    <FaHome /> Add New Property Form
+                    <FaHome /> {isEditMode ? 'Edit Property Form' : 'Add New Property Form'}
                   </p>
-                  <p className="text-sm mt-1">Fill out the form below to add a new property to your listings.</p>
+                  <p className="text-sm mt-1">
+                    {isEditMode 
+                      ? 'Update the details of your property below.' 
+                      : 'Fill out the form below to add a new property to your listings.'}
+                  </p>
                   <p className="text-xs mt-2 bg-blue-50 p-2 rounded">
                     <strong>Note:</strong> New properties require admin approval before going live
                   </p>
@@ -1204,25 +1348,76 @@ const HouseDetails = () => {
                       <div className="mt-4">
                         <p className="text-sm font-medium mb-2">Selected Images:</p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {formData.images.map((img, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={URL.createObjectURL(img)}
-                                alt={`preview-${idx}`}
-                                className="w-full h-32 object-cover rounded border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeImage(idx)}
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <FaTimes size={12} />
-                              </button>
-                              <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                                {idx + 1}
+                          {formData.images.map((img, idx) => {
+                            // Handle both File objects (new uploads) and URL strings (existing images)
+                            let imageSrc = '';
+                            let isFileObject = false;
+                            
+                            if (img instanceof File || img instanceof Blob) {
+                              // New uploaded file
+                              try {
+                                imageSrc = URL.createObjectURL(img);
+                                isFileObject = true;
+                              } catch (error) {
+                                console.error('Error creating object URL for file:', error, img);
+                                return (
+                                  <div key={idx} className="relative group bg-gray-200 w-full h-32 rounded border flex items-center justify-center">
+                                    <span className="text-gray-500 text-sm">Invalid File</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeImage(idx)}
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                                    >
+                                      <FaTimes size={12} />
+                                    </button>
+                                  </div>
+                                );
+                              }
+                            } else if (typeof img === 'string' && img.trim() !== '') {
+                              // Existing image filename from database - construct full URL
+                              imageSrc = img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
+                              isFileObject = false;
+                            } else {
+                              // Invalid image data
+                              console.warn('Invalid image data at index:', idx, img);
+                              return null;
+                            }
+                            
+                            return (
+                              <div key={idx} className="relative group">
+                                <img
+                                  src={imageSrc}
+                                  alt={`preview-${idx}`}
+                                  className="w-full h-32 object-cover rounded border"
+                                  onLoad={() => {
+                                    // Clean up object URL if it was created for a file
+                                    if (isFileObject) {
+                                      setTimeout(() => URL.revokeObjectURL(imageSrc), 100);
+                                    }
+                                  }}
+                                  onError={(e) => {
+                                    console.error('Image failed to load:', imageSrc);
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                                {/* Fallback for failed images */}
+                                <div className="hidden w-full h-32 bg-gray-200 rounded border flex items-center justify-center">
+                                  <span className="text-gray-500 text-sm">Image Failed</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(idx)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <FaTimes size={12} />
+                                </button>
+                                <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                                  {idx + 1}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1316,11 +1511,11 @@ const HouseDetails = () => {
                       placeholder="Price per night"
                       value={formData.pricePerNight}
                       onChange={handleChange}
-                      className="w-full border px-4 py-2 rounded"
+                      className="w-full border px-4 py-2 rounded text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
 
-                    <h3 className="font-semibold text-black">Short Term Features:</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-black">
+                    <h3 className="font-semibold text-gray-900">Short Term Features:</h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
                       {[
                         'Meals Provided',
                         'On-site Parking',
@@ -1329,11 +1524,12 @@ const HouseDetails = () => {
                         'Visitors Allowed',
                         'Cleaning Services',
                       ].map((label, idx) => (
-                        <label key={idx} className="flex items-center gap-2">
+                        <label key={idx} className="flex items-center gap-2 text-gray-700">
                           <input
                             type="checkbox"
                             checked={formData.shortFeatures.includes(label)}
                             onChange={() => handleFeatureToggle(label, 'shortFeatures')}
+                            className="text-blue-600 focus:ring-blue-500"
                           />
                           {label}
                         </label>
@@ -1346,7 +1542,7 @@ const HouseDetails = () => {
                       onChange={handleChange}
                       rows="3"
                       placeholder="Description"
-                      className="w-full border px-4 py-4 rounded"
+                      className="w-full border px-4 py-2 rounded text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
                     />
                   </div>
                 )}
@@ -1354,22 +1550,37 @@ const HouseDetails = () => {
 
               {/* Enhanced Submit Button */}
               <div className="col-span-full text-center mb-16">
-                <button
-                  onClick={handleSubmit}
-                  disabled={formData.images.length < 3}
-                  className={`px-8 py-3 rounded font-bold transition-all ${
-                    formData.images.length < 3
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {formData.images.length < 3 
-                    ? `Upload ${3 - formData.images.length} More Image(s) to Submit`
-                    : 'Submit Property for Review'
-                  }
-                </button>
+                <div className="flex gap-4 justify-center">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isEditMode ? formData.images.length < 1 : formData.images.length < 3}
+                    className={`px-8 py-3 rounded font-bold transition-all ${
+                      (isEditMode ? formData.images.length < 1 : formData.images.length < 3)
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {isEditMode 
+                      ? (formData.images.length < 1 
+                          ? `Upload ${1 - formData.images.length} More Image(s) to Update`
+                          : 'Update Property')
+                      : (formData.images.length < 3 
+                          ? `Upload ${3 - formData.images.length} More Image(s) to Submit`
+                          : 'Submit Property for Review')
+                    }
+                  </button>
+                  
+                  {isEditMode && (
+                    <button
+                      onClick={resetFormAndExitEdit}
+                      className="px-8 py-3 rounded font-bold transition-all bg-gray-500 hover:bg-gray-600 text-white"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  Properties are reviewed within 24 hours
+                  {isEditMode ? 'Update your property details' : 'Properties are reviewed within 24 hours'}
                 </p>
               </div>
             </div>
@@ -1443,26 +1654,14 @@ const HouseDetails = () => {
                               {statusInfo.label}
                             </span>
                             
-                            {/* Availability Status Badge */}
+                            {/* Availability Status Badge - Simplified */}
                             <span className={`px-2 py-1 text-xs font-semibold rounded ${
                               property.availabilityStatus === 'available' 
                                 ? 'bg-green-600 text-white' 
-                                : property.availabilityStatus === 'occupied'
-                                ? 'bg-red-600 text-white'
-                                : 'bg-yellow-600 text-white'
+                                : 'bg-red-600 text-white'
                             }`}>
-                              {property.availabilityStatus}
+                              {property.availabilityStatus === 'available' ? 'Available' : 'Unavailable'}
                             </span>
-                            
-                            {property.bookingStatus && (
-                              <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                                property.bookingStatus === 'confirmed' 
-                                  ? 'bg-blue-500 text-white' 
-                                  : 'bg-orange-500 text-white'
-                              }`}>
-                                {property.bookingStatus}
-                              </span>
-                            )}
                           </div>
 
                           <div className="absolute top-2 right-2">
@@ -1529,7 +1728,7 @@ const HouseDetails = () => {
                           <div className="flex flex-wrap gap-2">
                             {/* Edit Button - Always available */}
                             <button
-                              onClick={() => setEditingProperty(property)}
+                              onClick={() => handleEditProperty(property)}
                               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium flex items-center justify-center gap-1"
                             >
                               <FaEdit /> Edit
@@ -1548,7 +1747,7 @@ const HouseDetails = () => {
                           {property.status === 'approved' && (
                             <div className="mt-3 pt-3 border-t">
                               <div className="flex flex-wrap gap-2">
-                                {/* Availability Status Buttons */}
+                                {/* Availability Status Buttons - Simplified */}
                                 {property.availabilityStatus !== 'available' && (
                                   <button
                                     onClick={() => handleUpdateAvailability(property.id, 'available')}
@@ -1557,41 +1756,15 @@ const HouseDetails = () => {
                                     <FaCheck /> Set Available
                                   </button>
                                 )}
-                                
-                                {property.availabilityStatus !== 'occupied' && (
-                                  <button
-                                    onClick={() => handleUpdateAvailability(property.id, 'occupied')}
-                                    className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded flex items-center gap-1"
-                                  >
-                                    <FaBan /> Set Occupied
-                                  </button>
-                                )}
 
                                 {property.availabilityStatus !== 'unavailable' && (
                                   <button
                                     onClick={() => setShowAvailabilityModal(property.id)}
-                                    className="text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-2 py-1 rounded flex items-center gap-1"
+                                    className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded flex items-center gap-1"
                                   >
-                                    <FaCalendarAlt /> Set Unavailable
+                                    <FaBan /> Set Unavailable
                                   </button>
                                 )}
-                              </div>
-
-                              {/* Booking Status Management */}
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                <button
-                                  onClick={() => handleUpdateBookingStatus(property.id, 'pending')}
-                                  className="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-2 py-1 rounded flex items-center gap-1"
-                                >
-                                  <FaClock /> Pending
-                                </button>
-                                
-                                <button
-                                  onClick={() => handleUpdateBookingStatus(property.id, 'confirmed')}
-                                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded flex items-center gap-1"
-                                >
-                                  <FaCheck /> Confirm
-                                </button>
                               </div>
 
                               {/* Available Date Display */}
@@ -1632,28 +1805,37 @@ const HouseDetails = () => {
           {showAvailabilityModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-                <h3 className="text-lg font-bold mb-4 text-gray-800">Set Unavailable Date</h3>
+                <h3 className="text-lg font-bold mb-4 text-gray-800">Set Property as Unavailable</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   Select when this property will be available again:
                 </p>
                 
-                <input
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleUpdateAvailability(showAvailabilityModal, 'unavailable', e.target.value);
-                    }
-                  }}
-                  className="w-full border px-3 py-2 rounded mb-4"
-                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Available From Date:
+                  </label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={formData.availableDate || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, availableDate: e.target.value }))}
+                    className="w-full border px-3 py-2 rounded text-gray-900 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  />
+                </div>
 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => handleUpdateAvailability(showAvailabilityModal, 'unavailable')}
-                    className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+                    onClick={() => {
+                      if (formData.availableDate) {
+                        handleUpdateAvailability(showAvailabilityModal, 'unavailable', formData.availableDate);
+                        setShowAvailabilityModal(null);
+                      } else {
+                        alert('Please select a date when the property will be available again.');
+                      }
+                    }}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium"
                   >
-                    Set Unavailable (No Date)
+                    Set Unavailable
                   </button>
                   <button
                     onClick={() => setShowAvailabilityModal(null)}
@@ -1666,146 +1848,7 @@ const HouseDetails = () => {
             </div>
           )}
 
-          {/* EDIT PROPERTY MODAL */}
-          {editingProperty && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-              <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 my-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">Edit Property</h3>
-                  <button
-                    onClick={() => setEditingProperty(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <FaTimes size={20} />
-                  </button>
-                </div>
 
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  <input
-                    type="text"
-                    placeholder="Title"
-                    value={editingProperty.title || ''}
-                    onChange={(e) => setEditingProperty({
-                      ...editingProperty,
-                      title: e.target.value
-                    })}
-                    className="w-full border px-3 py-2 rounded"
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="number"
-                      placeholder="Price"
-                      value={editingProperty.price || ''}
-                      onChange={(e) => setEditingProperty({
-                        ...editingProperty,
-                        price: e.target.value
-                      })}
-                      className="border px-3 py-2 rounded"
-                    />
-
-                    <select
-                      value={editingProperty.genderAllowed || ''}
-                      onChange={(e) => setEditingProperty({
-                        ...editingProperty,
-                        genderAllowed: e.target.value
-                      })}
-                      className="border px-3 py-2 rounded"
-                    >
-                      <option value="">Gender Allowed</option>
-                      <option value="Girls">Girls</option>
-                      <option value="Boys">Boys</option>
-                      <option value="Anyone">Anyone</option>
-                    </select>
-                  </div>
-
-                  <textarea
-                    placeholder="Address"
-                    value={editingProperty.address || ''}
-                    onChange={(e) => setEditingProperty({
-                      ...editingProperty,
-                      address: e.target.value
-                    })}
-                    rows="2"
-                    className="w-full border px-3 py-2 rounded"
-                  />
-
-                  <textarea
-                    placeholder="Highlights"
-                    value={editingProperty.highlights || ''}
-                    onChange={(e) => setEditingProperty({
-                      ...editingProperty,
-                      highlights: e.target.value
-                    })}
-                    rows="3"
-                    className="w-full border px-3 py-2 rounded"
-                  />
-
-                  {editingProperty.shortTerm && (
-                    <div className="space-y-2">
-                      <input
-                        type="number"
-                        placeholder="Price per night"
-                        value={editingProperty.pricePerNight || ''}
-                        onChange={(e) => setEditingProperty({
-                          ...editingProperty,
-                          pricePerNight: e.target.value
-                        })}
-                        className="w-full border px-3 py-2 rounded"
-                      />
-                      
-                      <textarea
-                        placeholder="Description"
-                        value={editingProperty.description || ''}
-                        onChange={(e) => setEditingProperty({
-                          ...editingProperty,
-                          description: e.target.value
-                        })}
-                        rows="3"
-                        className="w-full border px-3 py-2 rounded"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(`http://localhost:5000/api/houses/${editingProperty.id}`, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify(editingProperty),
-                        });
-
-                        if (response.ok) {
-                          alert('✅ Property updated successfully!');
-                          setEditingProperty(null);
-                          fetchMyListings();
-                        } else {
-                          alert('❌ Failed to update property');
-                        }
-                      } catch (error) {
-                        console.error('Error updating property:', error);
-                        alert('❌ Error updating property');
-                      }
-                    }}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => setEditingProperty(null)}
-                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* VISIT REQUESTS SECTION */}
           {activeSection === 'visit-requests' && (
