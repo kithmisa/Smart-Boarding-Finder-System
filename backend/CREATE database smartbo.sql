@@ -254,6 +254,32 @@ CREATE TABLE favorites (
   INDEX idx_created_at (created_at)
 );
 
+-- Create website ratings table
+CREATE TABLE website_ratings (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NULL, -- NULL for anonymous ratings
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  ip_address VARCHAR(45), -- Store IP for anonymous ratings
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  INDEX idx_rating (rating),
+  INDEX idx_created_at (created_at),
+  INDEX idx_user_id (user_id)
+);
+
+-- Create view for website rating summary
+CREATE OR REPLACE VIEW website_ratings_summary AS
+SELECT 
+  COUNT(*) as total_ratings,
+  AVG(rating) as average_rating,
+  COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
+  COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
+  COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
+  COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
+  COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
+FROM website_ratings;
+
 
 
 

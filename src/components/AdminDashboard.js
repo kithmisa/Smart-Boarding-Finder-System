@@ -230,6 +230,7 @@ const AdminDashboard = () => {
   const [houses, setHouses] = useState([]);
   const [comments, setComments] = useState([]);
   const [boardingHouses, setBoardingHouses] = useState([]);
+  const [websiteRatings, setWebsiteRatings] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [replyModalOpen, setReplyModalOpen] = useState(false);
@@ -339,6 +340,25 @@ const AdminDashboard = () => {
     fetchData();
   }, [activeSection]);
 
+  // Fetch ratings data for dashboard overview
+  useEffect(() => {
+    const fetchRatingsData = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/website-ratings/recent?limit=100');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setWebsiteRatings(data.data || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching ratings data:', error);
+      }
+    };
+
+    fetchRatingsData();
+  }, []);
+
   const fetchData = async () => {
     if (activeSection === 'dashboard') return;
     
@@ -362,6 +382,9 @@ const AdminDashboard = () => {
           break;
         case 'boarding':
           endpoint = '/api/admin/boarding-houses';
+          break;
+        case 'ratings':
+          endpoint = '/api/website-ratings/recent';
           break;
         default:
           return;
@@ -391,6 +414,9 @@ const AdminDashboard = () => {
             break;
           case 'boarding':
             setBoardingHouses(data.boardingHouses || []);
+            break;
+          case 'ratings':
+            setWebsiteRatings(data.data || []);
             break;
         }
       }
@@ -527,6 +553,9 @@ const AdminDashboard = () => {
         case 'boarding-houses':
           setBoardingHouses(boardingHouses.filter(b => b.id !== id));
           break;
+        case 'ratings':
+          setWebsiteRatings(websiteRatings.filter(r => r.id !== id));
+          break;
       }
     } catch (err) {
       alert('Delete failed: ' + err.message);
@@ -643,6 +672,7 @@ const AdminDashboard = () => {
     { id: 'houses', label: 'House Management', icon: Home },
    /* { id: 'boarding', label: 'Boarding Houses', icon: Building },*/
     { id: 'comments', label: 'Comments & Replies', icon: MessageCircle },
+    { id: 'ratings', label: 'Website Ratings', icon: Star },
   ];
 
   // House Details Modal Component
@@ -915,6 +945,12 @@ const AdminDashboard = () => {
     const repliedMessages = comments.filter(c => c.replied).length;
     const unreadMessages = totalMessages - repliedMessages;
     
+    // Website rating statistics
+    const totalRatings = websiteRatings.length;
+    const averageRating = totalRatings > 0 
+      ? (websiteRatings.reduce((sum, r) => sum + r.rating, 0) / totalRatings).toFixed(1)
+      : 0;
+    
     return (
       <div className="space-y-6">
         {/* Main Stats Row */}
@@ -1003,6 +1039,17 @@ const AdminDashboard = () => {
                 <p className="text-2xl font-bold text-red-600">{rejectedHouses}</p>
               </div>
               <X className="text-red-500" size={32} />
+            </div>
+          </div>
+          
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Website Ratings</p>
+                <p className="text-2xl font-bold text-purple-600">{totalRatings}</p>
+                <p className="text-xs text-gray-500">Avg: {averageRating} ⭐</p>
+              </div>
+              <Star className="text-purple-500" size={32} />
             </div>
           </div>
         </div>
@@ -1500,6 +1547,122 @@ const AdminDashboard = () => {
     );
   };
 
+  const renderRatings = () => {
+    return (
+      <div className="space-y-6">
+        {/* Header with Stats */}
+        <div className={`${darkClasses.card} rounded-lg shadow-lg border ${darkClasses.border} backdrop-blur-sm`}>
+          <div className="px-6 py-4 border-b border-white/20">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className={`text-lg font-semibold ${darkClasses.text}`}>Website Ratings & Feedback</h3>
+                <p className={`text-sm ${darkClasses.textSecondary} mt-1`}>Monitor user ratings and feedback for the website</p>
+              </div>
+              
+              {/* Stats */}
+              <div className="flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span className={darkClasses.textSecondary}>Total: {websiteRatings.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Ratings Table */}
+          <div className="p-6">
+            {websiteRatings.length === 0 ? (
+              <div className="text-center py-12">
+                <div className={`${darkClasses.textMuted} mb-4`}>
+                  <Star className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className={`text-lg font-medium ${darkClasses.text} mb-2`}>
+                  No ratings yet
+                </h3>
+                <p className={darkClasses.textMuted}>
+                  Website ratings will appear here once users start rating
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comment</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {websiteRatings.map(rating => (
+                      <tr key={rating.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm">{rating.id}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">{rating.rating}</span>
+                            <div className="flex gap-1">
+                              {[...Array(5)].map((_, index) => (
+                                <Star
+                                  key={index}
+                                  size={14}
+                                  className={index < rating.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {rating.username ? (
+                            <div>
+                              <div className="font-medium">{rating.username}</div>
+                              <div className="text-xs text-gray-500">{rating.email}</div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">Anonymous</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {rating.comment ? (
+                            <div className="max-w-xs">
+                              <p className="text-gray-800">{rating.comment}</p>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">No comment</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
+                            {rating.ip_address}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {rating.created_at ? new Date(rating.created_at).toLocaleString() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <button
+                            onClick={() => handleDelete('ratings', rating.id)}
+                            className="text-red-600 hover:text-red-800 flex items-center gap-1"
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderComments = () => {
     return (
       <div className="space-y-6">
@@ -1788,6 +1951,8 @@ const AdminDashboard = () => {
         return renderBoardingHouses();
       case 'comments':
         return renderComments();
+      case 'ratings':
+        return renderRatings();
       default:
         return renderDashboard();
     }

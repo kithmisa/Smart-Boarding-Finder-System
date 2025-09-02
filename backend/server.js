@@ -18,6 +18,7 @@ const favoritesRoutes = require('./routes/favoritesRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const visitRequestRoutes = require('./routes/visitRequestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const websiteRatingRoutes = require('./routes/websiteRatingRoutes');
 
 const app = express();
 app.use(cors());
@@ -37,6 +38,7 @@ app.use('/api/users/favorites', favoritesRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/visit-requests', visitRequestRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/website-ratings', websiteRatingRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));

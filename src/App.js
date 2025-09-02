@@ -57,7 +57,7 @@ function Layout({ onAuthClick, showAuthModal, onAuthClose, onAuthSuccess, isAuth
         />
       )}
 
-      <Footer />
+      <Footer isAuthenticated={isAuthenticated} user={user} />
     </div>
   );
 }
