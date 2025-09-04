@@ -638,7 +638,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
 
         {/* OTP Modal */}
         {showOtpModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold" style={{ color: '#8B4513' }}>Verify your email</h3>
@@ -718,7 +718,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
 
         {/* Password Reset OTP Modal */}
         {showResetOtpModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold" style={{ color: '#8B4513' }}>Reset Password</h3>
@@ -795,7 +795,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
 
         {/* New Password Modal */}
         {showNewPasswordModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold" style={{ color: '#8B4513' }}>Set New Password</h3>

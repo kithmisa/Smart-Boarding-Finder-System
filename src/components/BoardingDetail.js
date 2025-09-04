@@ -232,7 +232,7 @@ const BoardingDetail = () => {
       } else {
         const errorData = await response.text();
         console.error('Review submission failed:', response.status, errorData);
-        alert(`Failed to submit review: ${response.status === 400 ? 'Invalid data provided' : 'Server error'}. Please try again.`);
+        alert(`Failed to submit review: ${response.status === 400 ? 'Invalid data provided(may be you have already reviewed this property)' : 'Server error'}. Please try again.`);
       }
     } catch (error) {
       console.error('Network error submitting review:', error);
@@ -1482,7 +1482,7 @@ const BoardingDetail = () => {
 
       {/* Waiting List Form Modal */}
       {showWaitingListForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800">Join Waiting List</h3>

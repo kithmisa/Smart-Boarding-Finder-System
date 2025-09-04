@@ -92,7 +92,7 @@ const Navbar = ({ onAuthClick, isAuthenticated, user, onLogout }) => {
                   My Profile
                 </button>
                 <button
-                  onClick={() => {
+                     onClick={() => {
                     onLogout();
                     setShowDropdown(false);
                   }}

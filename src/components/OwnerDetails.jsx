@@ -643,7 +643,7 @@ const OwnerDetails = () => {
 
       {/* OTP Verification Modal */}
       {showOTPModal && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[100]">
           <div className="bg-white rounded-xl p-8 shadow-xl w-96 text-center">
             <div className="flex items-center justify-center mb-4">
               <FaEnvelope className="text-blue-500 text-2xl mr-2" />
@@ -709,7 +709,7 @@ const OwnerDetails = () => {
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100]">
           <div className="bg-white rounded-xl p-8 shadow-xl w-96 text-center">
             <h2 className="text-xl font-bold mb-4 text-black">Login with NIC</h2>
             <div className="mb-4">
@@ -746,7 +746,7 @@ const OwnerDetails = () => {
 
        {/* ✅ Terms and Conditions Modal */}
        {showTermsModal && (
-         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[100] p-4">
            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[70vh] overflow-y-auto">
              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
                <div className="flex items-center justify-between">

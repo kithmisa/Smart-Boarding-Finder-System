@@ -3,6 +3,7 @@ const router = express.Router();
 const { addHouse, getAllHouses, getHousesByOwner, updateHouse, deleteHouse, 
   updateAvailability, 
   updateBookingStatus } = require('../controllers/houseController');
+const { getHouseWaitingList } = require('../controllers/adminController');
 const db = require('../db');
 
 const multer = require('multer');
@@ -286,11 +287,24 @@ router.put('/:id/availability', async (req, res) => {
             [id]
           );
           
-          // Here you could add email notification logic
-          // For now, we'll just log it
-          waitingList.forEach(user => {
-            console.log(`📧 Notifying user ${user.name} (${user.email}) that ${user.house_title} is now available!`);
-          });
+          // Send email notifications to all users on waiting list
+          const emailService = require('../services/emailService');
+          
+          for (const user of waitingList) {
+            try {
+              console.log(`📧 Sending email notification to user ${user.name} (${user.email}) that ${user.house_title} is now available!`);
+              await emailService.sendPropertyAvailableNotification(
+                user.email,
+                user.name,
+                user.house_title,
+                id
+              );
+              console.log(`✅ Email sent successfully to ${user.email}`);
+            } catch (emailError) {
+              console.error(`❌ Failed to send email to ${user.email}:`, emailError);
+              // Continue with other users even if one email fails
+            }
+          }
         }
       } catch (notifyError) {
         console.error('⚠️ Error notifying waiting list users:', notifyError);
@@ -335,5 +349,8 @@ router.put('/:id/booking-status', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// ✅ GET - Get waiting list for a specific house (for owner notifications)
+router.get('/:houseId/waiting-list', getHouseWaitingList);
 
 module.exports = router;

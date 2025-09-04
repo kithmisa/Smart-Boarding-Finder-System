@@ -7,6 +7,7 @@ const {
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getHouseDetails,
   getAllVisitRequests,
   sendEmail,
   deleteUser,
@@ -215,56 +216,8 @@ router.get('/houses/rejected', async (req, res) => {
   }
 });
 
-// Get detailed house information (for admin modal)
-router.get('/houses/:id/details', async (req, res) => {
-  const db = require('../db');
-  const houseId = req.params.id;
-  
-  try {
-    const [rows] = await db.query(`
-      SELECT h.*, o.name as owner_name, o.email as owner_email, o.contact as owner_phone 
-      FROM houses h 
-      LEFT JOIN owner o ON h.owner_id = o.id 
-      WHERE h.id = ?
-    `, [houseId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'House not found' });
-    }
-
-    const house = rows[0];
-
-    // Parse images
-    try {
-      if (house.images) {
-        house.images = JSON.parse(house.images);
-        if (!Array.isArray(house.images)) {
-          house.images = [house.images];
-        }
-      } else {
-        house.images = [];
-      }
-    } catch (e) {
-      house.images = typeof house.images === 'string' 
-        ? house.images.split(',').filter(img => img.trim() !== '') 
-        : [];
-    }
-
-    // Parse features
-    try {
-      house.features = house.features ? JSON.parse(house.features) : [];
-      house.shortFeatures = house.shortFeatures ? JSON.parse(house.shortFeatures) : [];
-    } catch (e) {
-      house.features = [];
-      house.shortFeatures = [];
-    }
-
-    res.json({ success: true, house });
-  } catch (error) {
-    console.error('Error fetching house details:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
+// Get detailed house information (for admin modal) with notifications
+router.get('/houses/:id/details', getHouseDetails);
 
 // ✅ Approve house
 router.put('/houses/:id/approve', async (req, res) => {

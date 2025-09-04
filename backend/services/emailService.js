@@ -214,10 +214,61 @@ const sendVisitRejectionEmail = async ({ to, userName, propertyTitle, rejectionR
   return await sendEmail(to, subject, html);
 };
 
+// Send property availability notification to users on waiting list
+const sendPropertyAvailableNotification = async (userEmail, userName, propertyTitle, propertyId) => {
+  const subject = `🏠 Great News! ${propertyTitle} is Now Available`;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px;">
+      <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); width: 80px; height: 80px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 40px; color: white;">
+            🎉
+          </div>
+          <h1 style="color: #333; margin: 20px 0 10px 0;">Property Available!</h1>
+          <p style="color: #666; margin: 0;">The property you were waiting for is now available</p>
+        </div>
+        
+        <div style="background: #f0fdf4; padding: 20px; border-radius: 10px; border-left: 4px solid #10b981; margin: 20px 0;">
+          <h3 style="color: #333; margin-top: 0;">Property Details</h3>
+          <p style="margin: 8px 0;"><strong>Property:</strong> ${propertyTitle}</p>
+          <p style="margin: 8px 0;"><strong>Status:</strong> <span style="color: #059669; font-weight: bold;">Available Now!</span></p>
+        </div>
+
+        <div style="background: #eff6ff; padding: 20px; border-radius: 10px; margin: 20px 0;">
+          <h4 style="color: #1e40af; margin-top: 0;">⚡ Act Fast!</h4>
+          <ul style="color: #374151; padding-left: 20px;">
+            <li>This property is now available for booking</li>
+            <li>Other users may also be interested</li>
+            <li>Contact the owner or book immediately</li>
+            <li>Don't miss this opportunity!</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://smartboardingfinder.com/property/${propertyId}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+            View Property Now
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+          <p style="color: #666; font-size: 14px;">
+            This is an automated notification from Smart Boarding Finder System.<br>
+            Need help? Contact us at smartboproject@gmail.com
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return await sendEmail(userEmail, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendVisitRequestNotification,
   sendVisitResponseNotification,
   sendVisitConfirmationEmail,
-  sendVisitRejectionEmail
+  sendVisitRejectionEmail,
+  sendPropertyAvailableNotification
 };

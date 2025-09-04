@@ -26,7 +26,7 @@ const ReplyModal = ({
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">
@@ -344,6 +344,11 @@ const AdminDashboard = () => {
   // Fetch data based on active section
   useEffect(() => {
     fetchData();
+  }, [activeSection]);
+
+  // Clear search term when switching sections
+  useEffect(() => {
+    setSearchTerm('');
   }, [activeSection]);
 
   const fetchData = async () => {
@@ -685,7 +690,7 @@ const AdminDashboard = () => {
 
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
         <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto mt-25 mb-2">
           <div className="p-6">
             {/* Header */}
@@ -711,26 +716,39 @@ const AdminDashboard = () => {
             </div>
 
             {/* Images */}
-            {selectedHouse.images && selectedHouse.images.length > 0 && (
+            {selectedHouse.images && Array.isArray(selectedHouse.images) && selectedHouse.images.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   <Image size={20} />
                   Property Images ({selectedHouse.images.length})
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {selectedHouse.images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img
-                       // src={`http://localhost:5000/${image.replace(/\\/g, '/')}`}
-                       src={`http://localhost:5000/uploads/${image}`} 
-                       alt={`Property ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border"
-                        onError={(e) => {
-                          e.target.src = bgHero;
-                        }}
-                      />
-                    </div>
-                  ))}
+                  {selectedHouse.images.map((image, index) => {
+                    // Handle different image path formats
+                    let imageSrc = '';
+                    if (image.startsWith('http')) {
+                      imageSrc = image;
+                    } else if (image.startsWith('/')) {
+                      imageSrc = `http://localhost:5000${image}`;
+                    } else {
+                      imageSrc = `http://localhost:5000/uploads/${image}`;
+                    }
+                    
+                    return (
+                      <div key={index} className="relative">
+                        <img
+                          src={imageSrc}
+                          alt={`Property ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border"
+                          onError={(e) => {
+                            console.log('Image failed to load:', imageSrc);
+                            e.target.src = bgHero;
+                          }}
+                          onLoad={() => console.log('Image loaded successfully:', imageSrc)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -777,7 +795,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Features */}
-            {selectedHouse.features && selectedHouse.features.length > 0 && (
+            {selectedHouse.features && Array.isArray(selectedHouse.features) && selectedHouse.features.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold border-b pb-2 mb-3">Features</h3>
                 <div className="flex flex-wrap gap-2">
@@ -791,7 +809,7 @@ const AdminDashboard = () => {
             )}
 
             {/* Short Term Features */}
-            {selectedHouse.shortFeatures && selectedHouse.shortFeatures.length > 0 && (
+            {selectedHouse.shortFeatures && Array.isArray(selectedHouse.shortFeatures) && selectedHouse.shortFeatures.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold border-b pb-2 mb-3">Short Term Features</h3>
                 <div className="flex flex-wrap gap-2">
@@ -895,27 +913,715 @@ const AdminDashboard = () => {
     );
   };
 
-  const ProfileModal = ({ profile, onClose }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Profile Details</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="space-y-3">
-          <div><strong>ID:</strong> {profile?.id}</div>
-          <div><strong>Name:</strong> {profile?.name || 'N/A'}</div>
-          <div><strong>Email:</strong> {profile?.email || 'N/A'}</div>
-          <div><strong>NIC:</strong> {profile?.nic || 'N/A'}</div>
-          <div><strong>Phone:</strong> {profile?.contact || 'N/A'}</div>
-        {/*  <div><strong>Created:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</div>*/}
+  const ProfileModal = ({ profile, onClose }) => {
+    const [activeTab, setActiveTab] = useState('basic');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+        <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-xl">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold">User Profile Details</h3>
+                <p className="text-blue-100 mt-1">Complete user information and activity summary</p>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-lg"
+              >
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+
+          {/* User Overview Card */}
+          <div className="p-6 pb-0">
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {profile?.username?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-xl font-semibold text-gray-800">
+                    {profile?.first_name} {profile?.last_name}
+                  </h4>
+                  <p className="text-gray-600">{profile?.email}</p>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      profile?.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {profile?.status || 'Unknown'}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      ID: {profile?.id}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="px-6 pt-4">
+            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'basic'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Basic Information
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'activity'
+                    ? 'bg-white text-green-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Activity Summary
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'basic' && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h5 className="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                  Basic Information
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">User ID</label>
+                      <p className="text-gray-900 font-mono text-lg">{profile?.id}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Username</label>
+                      <p className="text-gray-900 text-lg">{profile?.username}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Full Name</label>
+                      <p className="text-gray-900 text-lg">{profile?.first_name} {profile?.last_name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email Address</label>
+                      <p className="text-gray-900 text-lg">{profile?.email}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Phone Number</label>
+                      <p className="text-gray-900 text-lg">{profile?.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Account Status</label>
+                      <p className="text-gray-900 text-lg">{profile?.status || 'Unknown'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Registration Date</label>
+                      <p className="text-gray-900 text-lg">
+                        {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                      <p className="text-gray-900 text-lg">
+                        {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'activity' && (
+              <div className="space-y-6">
+                {/* Activity Summary Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Visit Requests */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-blue-800">Visit Requests</h6>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {profile?.activity?.visitRequests?.summary?.total_requests || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-yellow-600">Pending:</span>
+                        <span>{profile?.activity?.visitRequests?.summary?.pending_requests || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-600">Confirmed:</span>
+                        <span>{profile?.activity?.visitRequests?.summary?.confirmed_requests || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Waiting List */}
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-orange-800">Waiting List</h6>
+                      <span className="text-2xl font-bold text-orange-600">
+                        {profile?.activity?.waitingList?.summary?.total_waiting || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-yellow-600">Waiting:</span>
+                        <span>{profile?.activity?.waitingList?.summary?.active_waiting || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Notified:</span>
+                        <span>{profile?.activity?.waitingList?.summary?.notified_waiting || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reviews */}
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-purple-800">Reviews</h6>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {profile?.activity?.reviews?.summary?.total_reviews || 0}
+                      </span>
+                    </div>
+                    {profile?.activity?.reviews?.summary?.total_reviews > 0 && (
+                      <div className="text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <span>Avg Rating:</span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-yellow-500">★</span>
+                            {typeof profile.activity.reviews.summary.average_rating === 'number' ? profile.activity.reviews.summary.average_rating.toFixed(1) : '0.0'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Property Details */}
+                <div className="space-y-4">
+                  {/* Visit Requests Details */}
+                  {profile?.activity?.visitRequests?.details && profile.activity.visitRequests.details.length > 0 && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h6 className="font-medium text-blue-800 mb-3">Properties with Visit Requests</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.visitRequests.details.map((request, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-blue-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {request.house_id}</div>
+                                <div className="text-sm text-gray-600">{request.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">Requested: {new Date(request.requested_date).toLocaleDateString()}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                request.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {request.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Waiting List Details */}
+                  {profile?.activity?.waitingList?.details && profile.activity.waitingList.details.length > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <h6 className="font-medium text-orange-800 mb-3">Properties on Waiting List</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.waitingList.details.map((waiting, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-orange-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {waiting.house_id}</div>
+                                <div className="text-sm text-gray-600">{waiting.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">Joined: {new Date(waiting.joined_at).toLocaleDateString()}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                waiting.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
+                                waiting.status === 'notified' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {waiting.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reviews Details */}
+                  {profile?.activity?.reviews?.details && profile.activity.reviews.details.length > 0 && (
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                      <h6 className="font-medium text-purple-800 mb-3">Properties Reviewed</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.reviews.details.map((review, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-purple-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {review.house_id}</div>
+                                <div className="text-sm text-gray-600">{review.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">Rating: {review.rating}/5 ⭐</div>
+                              </div>
+                              <div className="text-right text-xs text-gray-500">
+                                <div>{new Date(review.created_at).toLocaleDateString()}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h6 className="font-medium text-gray-800 mb-3">Recent Activity (30 days)</h6>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span>Visits:</span>
+                      <span className="text-blue-600 font-medium">{profile?.activity?.recentActivity?.recent_visits || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Waiting:</span>
+                      <span className="text-orange-600 font-medium">{profile?.activity?.recentActivity?.recent_waiting || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Reviews:</span>
+                      <span className="text-purple-600 font-medium">{profile?.activity?.recentActivity?.recent_reviews || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="bg-gray-50 px-6 py-4 rounded-b-xl border-t border-gray-200">
+            <div className="flex gap-3">
+              <button
+                onClick={() => openEmailModal(
+                  {
+                    name: `${profile?.first_name} ${profile?.last_name}`,
+                    email: profile?.email
+                  },
+                  'Message from Smart Boarding Finder Admin'
+                )}
+                className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <Mail size={18} />
+                Send Email
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
+  const OwnerModal = ({ profile, onClose }) => {
+    const [activeTab, setActiveTab] = useState('basic');
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+        <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-t-xl">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-bold">Owner Profile Details</h3>
+                <p className="text-green-100 mt-1">Complete owner information and activity summary</p>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-lg"
+              >
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+
+          {/* Owner Overview Card */}
+          <div className="p-6 pb-0">
+            <div className="bg-gradient-to-r from-gray-50 to-green-50 rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {profile?.name?.charAt(0)?.toUpperCase() || 'O'}
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-xl font-semibold text-gray-800">
+                    {profile?.name || 'Unknown Owner'}
+                  </h4>
+                  <p className="text-gray-600">{profile?.email || 'N/A'}</p>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Property Owner
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      NIC: {profile?.nic || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="px-6 pt-4">
+            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'basic'
+                    ? 'bg-white text-green-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Basic Information
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'activity'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Activity Summary
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'basic' && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h5 className="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                  Basic Information
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Owner ID</label>
+                      <p className="text-gray-900 font-mono text-lg">{profile?.id}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Full Name</label>
+                      <p className="text-gray-900 text-lg">{profile?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email Address</label>
+                      <p className="text-gray-900 text-lg">{profile?.email || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">NIC Number</label>
+                      <p className="text-gray-900 text-lg font-mono">{profile?.nic || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Contact Number</label>
+                      <p className="text-gray-900 text-lg">{profile?.contact || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'activity' && (
+              <div className="space-y-6">
+                {/* Activity Summary Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                  {/* Properties */}
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-green-800">Properties</h6>
+                      <span className="text-2xl font-bold text-green-600">
+                        {profile?.activity?.properties?.summary?.total_properties || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Approved:</span>
+                        <span>{profile?.activity?.properties?.summary?.approved_properties || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-yellow-600">Pending:</span>
+                        <span>{profile?.activity?.properties?.summary?.pending_properties || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-600">Available:</span>
+                        <span>{profile?.activity?.properties?.summary?.available_properties || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visit Requests */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-blue-800">Visit Requests</h6>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {profile?.activity?.visitRequests?.summary?.total_requests || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-yellow-600">Pending:</span>
+                        <span>{profile?.activity?.visitRequests?.summary?.pending_requests || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-600">Confirmed:</span>
+                        <span>{profile?.activity?.visitRequests?.summary?.confirmed_requests || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reviews */}
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-purple-800">Reviews</h6>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {profile?.activity?.reviews?.summary?.total_reviews || 0}
+                      </span>
+                    </div>
+                    {profile?.activity?.reviews?.summary?.total_reviews > 0 && (
+                      <div className="text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <span>Avg Rating:</span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-yellow-500">★</span>
+                            {typeof profile.activity.reviews.summary.average_rating === 'number' ? profile.activity.reviews.summary.average_rating.toFixed(1) : '0.0'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Waiting List */}
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h6 className="font-medium text-orange-800">Waiting List</h6>
+                      <span className="text-2xl font-bold text-orange-600">
+                        {profile?.activity?.waitingList?.summary?.total_waiting || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-yellow-600">Waiting:</span>
+                        <span>{profile?.activity?.waitingList?.summary?.active_waiting || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-600">Notified:</span>
+                        <span>{profile?.activity?.waitingList?.summary?.notified_waiting || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Details */}
+                <div className="space-y-4">
+                  {/* Properties Added */}
+                  {profile?.activity?.properties?.details && profile.activity.properties.details.length > 0 && (
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <h6 className="font-medium text-green-800 mb-3">Properties Added</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.properties.details.map((property, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-green-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {property.id}</div>
+                                <div className="text-sm text-gray-600">{property.title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">Location: {property.location || 'N/A'}</div>
+                                <div className="text-sm text-gray-600">Price: LKR {property.price || 'N/A'}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                property.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                property.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                property.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {property.status || 'Unknown'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Visit Requests Details */}
+                  {profile?.activity?.visitRequests?.details && profile.activity.visitRequests.details.length > 0 && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <h6 className="font-medium text-blue-800 mb-3">Visit Requests for Properties</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.visitRequests.details.map((request, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-blue-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {request.house_id}</div>
+                                <div className="text-sm text-gray-600">{request.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">User: {request.user_name || 'Unknown User'}</div>
+                                <div className="text-sm text-gray-600">Requested: {new Date(request.requested_date).toLocaleDateString()}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                request.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {request.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Waiting List Details */}
+                  {profile?.activity?.waitingList?.details && profile.activity.waitingList.details.length > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <h6 className="font-medium text-orange-800 mb-3">Waiting List for Properties</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.waitingList.details.map((waiting, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-orange-100">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-800">Property ID: {waiting.house_id}</div>
+                                <div className="text-sm text-gray-600">{waiting.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">User: {waiting.user_name || 'Unknown User'}</div>
+                                <div className="text-sm text-gray-600">Joined: {new Date(waiting.joined_at).toLocaleDateString()}</div>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                waiting.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
+                                waiting.status === 'notified' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {waiting.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reviews Details */}
+                  {profile?.activity?.reviews?.details && profile.activity.reviews.details.length > 0 && (
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                      <h6 className="font-medium text-purple-800 mb-3">Reviews for Properties</h6>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {profile.activity.reviews.details.map((review, index) => (
+                          <div key={index} className="bg-white p-3 rounded border border-purple-100">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-800">Property ID: {review.house_id}</div>
+                                <div className="text-sm text-gray-600">{review.house_title || 'Unknown Property'}</div>
+                                <div className="text-sm text-gray-600">User: {review.user_name || 'Unknown User'}</div>
+                                <div className="text-sm text-gray-600">Rating: {review.rating}/5 ⭐</div>
+                              </div>
+                              <div className="text-right text-xs text-gray-500 ml-4">
+                                <div>{new Date(review.created_at).toLocaleDateString()}</div>
+                              </div>
+                            </div>
+                            {review.review_comment && (
+                              <div className="mt-2 p-2 bg-gray-50 rounded border-l-4 border-purple-300">
+                                <div className="text-xs text-gray-500 mb-1">Review:</div>
+                                <div className="text-sm text-gray-700">{review.review_comment}</div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h6 className="font-medium text-gray-800 mb-3">Recent Activity (30 days)</h6>
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span>Properties:</span>
+                      <span className="text-green-600 font-medium">{profile?.activity?.recentActivity?.recent_properties || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Visits:</span>
+                      <span className="text-blue-600 font-medium">{profile?.activity?.recentActivity?.recent_visits || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Reviews:</span>
+                      <span className="text-purple-600 font-medium">{profile?.activity?.recentActivity?.recent_reviews || 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Waiting:</span>
+                      <span className="text-orange-600 font-medium">{profile?.activity?.recentActivity?.recent_waiting || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="bg-gray-50 px-6 py-4 rounded-b-xl border-t border-gray-200">
+            <div className="flex gap-3">
+              <button
+                onClick={() => openEmailModal(
+                  {
+                    name: profile?.name,
+                    email: profile?.email
+                  },
+                  'Message from Smart Boarding Finder Admin'
+                )}
+                className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <Mail size={18} />
+                Send Email
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderDashboard = () => {
     const pendingHouses = houses.filter(h => h.status === 'pending' || !h.status).length;
@@ -1024,135 +1730,204 @@ const AdminDashboard = () => {
     );
   };
 
-  const renderUsers = () => (
-    <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
-      <div className="px-6 py-4 border-b border-white/20">
-        <h3 className="text-lg font-semibold">User Management</h3>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {users.map(user => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm">{user.id}</td>
-                <td className="px-6 py-4 text-sm">{user.name || 'N/A'}</td>
-                <td className="px-6 py-4 text-sm">{user.email || 'N/A'}</td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedProfile(user)}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <Eye size={16} />
-                      View
-                    </button>
-                    <button
-                      onClick={() => openEmailModal(
-                        { 
-                          name: user.username || user.first_name, 
-                          email: user.email 
-                        },
-                        'Message from Smart Boarding Finder Admin'
-                      )}
-                      className="text-green-600 hover:text-green-800 flex items-center gap-1"
-                    >
-                      <Mail size={16} />
-                      Email
-                    </button>
-                    <button
-                      onClick={() => handleDelete('users', user.id)}
-                      className="text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const renderUsers = () => {
+    // Filter users based on search term
+    const filteredUsers = users.filter(user => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        user.id?.toString().includes(searchLower) ||
+        (user.username || '').toLowerCase().includes(searchLower) ||
+        (user.first_name || '').toLowerCase().includes(searchLower) ||
+        (user.last_name || '').toLowerCase().includes(searchLower) ||
+        (user.email || '').toLowerCase().includes(searchLower) ||
+        (user.phone || '').includes(searchTerm) ||
+        (user.status || '').toLowerCase().includes(searchLower)
+      );
+    });
 
-  const renderOwners = () => (
-    <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
-      <div className="px-6 py-4 border-b border-white/20">
-        <h3 className="text-lg font-semibold">Owner Management</h3>
+    return (
+      <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/20">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">User Management</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search users by name, email, ID, phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <Users className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            {searchTerm ? `Found ${filteredUsers.length} user(s) matching "${searchTerm}"` : `Total: ${users.length} users`}
+          </div>
+        </div>
+        
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchTerm ? 'No users found' : 'No users yet'}
+            </h3>
+            <p className="text-gray-500">
+              {searchTerm 
+                ? `No users match "${searchTerm}"` 
+                : 'User registrations will appear here'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map(user => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                      {user.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.first_name} {user.last_name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.phone || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.status || 'Unknown'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setSelectedProfile({ ...user, type: 'user' })}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                        >
+                          <Eye size={16} />
+                          View
+                        </button>
+                        <button
+                          onClick={() => openEmailModal(
+                            { 
+                              name: `${user.first_name} ${user.last_name}`.trim() || user.username, 
+                              email: user.email 
+                            },
+                            'Message from Smart Boarding Finder Admin'
+                          )}
+                          className="text-green-600 hover:text-green-900 flex items-center gap-1"
+                        >
+                          <Mail size={16} />
+                          Email
+                        </button>
+                        <button
+                          onClick={() => handleDelete('users', user.id)}
+                          className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIC</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {owners.map(owner => (
-              <tr key={owner.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm">{owner.id}</td>
-                <td className="px-6 py-4 text-sm">{owner.name || 'N/A'}</td>
-                <td className="px-6 py-4 text-sm">{owner.email || 'N/A'}</td>
-                <td className="px-6 py-4 text-sm">{owner.nic || 'N/A'}</td>
-                <td className="px-6 py-4 text-sm">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedProfile(owner)}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <Eye size={16} />
-                      View
-                    </button>
-                    <button
-                      onClick={() => openEmailModal(
-                        { 
-                          name: owner.name, 
-                          email: owner.email 
-                        },
-                        'Message from Smart Boarding Finder Admin'
-                      )}
-                      className="text-green-600 hover:text-green-800 flex items-center gap-1"
-                    >
-                      <Mail size={16} />
-                      Email
-                    </button>
-                    <button
-                      onClick={() => handleDelete('owners', owner.id)}
-                      className="text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+    );
+  };
+
+
 
   const renderHouses = () => {
-    const pendingHouses = houses.filter(h => h.status === 'pending' || !h.status);
-    const approvedHouses = houses.filter(h => h.status === 'approved');
-    const rejectedHouses = houses.filter(h => h.status === 'rejected');
+    // Filter houses based on search term
+    const filteredHouses = houses.filter(house => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        house.id?.toString().includes(searchLower) ||
+        (house.title || '').toLowerCase().includes(searchLower) ||
+        (house.owner_name || '').toLowerCase().includes(searchLower) ||
+        (house.location || '').toLowerCase().includes(searchLower) ||
+        (house.price || '').toString().includes(searchTerm) ||
+        (house.status || '').toLowerCase().includes(searchLower)
+      );
+    });
+
+    const pendingHouses = filteredHouses.filter(h => h.status === 'pending' || !h.status);
+    const approvedHouses = filteredHouses.filter(h => h.status === 'approved');
+    const rejectedHouses = filteredHouses.filter(h => h.status === 'rejected');
 
     return (
       <div className="space-y-6">
+        {/* Search Bar */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">House Management</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search houses by title, owner, location, ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <Home className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            {searchTerm ? `Found ${filteredHouses.length} house(s) matching "${searchTerm}"` : `Total: ${houses.length} houses`}
+          </div>
+        </div>
         {/* Pending Houses */}
         <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
           <div className="px-6 py-4 border-b border-white/20 bg-yellow-50/80">
@@ -1396,6 +2171,124 @@ const AdminDashboard = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderOwners = () => {
+    // Filter owners based on search term
+    const filteredOwners = owners.filter(owner => {
+      if (!searchTerm) return true;
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        owner.id?.toString().includes(searchLower) ||
+        (owner.name || '').toLowerCase().includes(searchLower) ||
+        (owner.email || '').toLowerCase().includes(searchLower) ||
+        (owner.nic || '').toLowerCase().includes(searchLower) ||
+        (owner.contact || '').includes(searchTerm) ||
+        (owner.address || '').toLowerCase().includes(searchLower)
+      );
+    });
+
+    return (
+      <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/20">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Owner Management</h3>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search owners by name, email, NIC, contact..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            {searchTerm ? `Found ${filteredOwners.length} owner(s) matching "${searchTerm}"` : `Total: ${owners.length} owners`}
+          </div>
+        </div>
+        
+        {filteredOwners.length === 0 ? (
+          <div className="text-center py-12">
+            <User className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchTerm ? 'No owners found' : 'No owners yet'}
+            </h3>
+            <p className="text-gray-500">
+              {searchTerm 
+                ? `No owners match "${searchTerm}"` 
+                : 'Owner registrations will appear here'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIC</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredOwners.map((owner) => (
+                  <tr key={owner.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                      {owner.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{owner.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{owner.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-mono text-gray-900">{owner.nic}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{owner.contact}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setSelectedProfile({ ...owner, type: 'owner' })}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                        >
+                          <Eye size={16} />
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDelete('owners', owner.id)}
+                          className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                        >
+                          <Trash2 size={16} />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -1884,6 +2777,27 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Requests', value: visitRequests.length, color: 'blue' },
+            { label: 'Pending', value: visitRequests.filter(r => r.status === 'pending').length, color: 'yellow' },
+            { label: 'Confirmed', value: visitRequests.filter(r => r.status === 'confirmed').length, color: 'green' },
+            { label: 'Rejected', value: visitRequests.filter(r => r.status === 'rejected').length, color: 'red' }
+          ].map((stat, index) => (
+            <div key={index} className={`${darkClasses.card} rounded-lg shadow border ${darkClasses.border} p-4`}>
+              <div className={`text-2xl font-bold text-${stat.color}-600`}>
+                {stat.value}
+              </div>
+              <div className={`text-sm ${darkClasses.textMuted}`}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+
         {/* Visit Requests List */}
         <div className={`${darkClasses.card} rounded-lg shadow-lg border ${darkClasses.border}`}>
           <div className="px-6 py-4 border-b border-white/20">
@@ -2020,24 +2934,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Requests', value: visitRequests.length, color: 'blue' },
-            { label: 'Pending', value: visitRequests.filter(r => r.status === 'pending').length, color: 'yellow' },
-            { label: 'Confirmed', value: visitRequests.filter(r => r.status === 'confirmed').length, color: 'green' },
-            { label: 'Rejected', value: visitRequests.filter(r => r.status === 'rejected').length, color: 'red' }
-          ].map((stat, index) => (
-            <div key={index} className={`${darkClasses.card} rounded-lg shadow border ${darkClasses.border} p-4`}>
-              <div className={`text-2xl font-bold text-${stat.color}-600`}>
-                {stat.value}
-              </div>
-              <div className={`text-sm ${darkClasses.textMuted}`}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
+        
       </div>
     );
   };
@@ -2133,8 +3030,8 @@ const AdminDashboard = () => {
         />
         
         {/* Semi-transparent Overlay */}
-        <div className={`absolute inset-0 z-10 backdrop-blur-sm ${
-          darkMode ? 'bg-gray-900/70' : 'bg-white/50'
+        <div className={`absolute inset-0 z-10 backdrop-blur-lg ${
+          darkMode ? 'bg-gray-900/70' : 'bg-white/30'
         }`} />
         
         {/* Content Container */}
@@ -2161,10 +3058,17 @@ const AdminDashboard = () => {
 
       {/* Modals */}
       {selectedProfile && (
-        <ProfileModal 
-          profile={selectedProfile} 
-          onClose={() => setSelectedProfile(null)} 
-        />
+        selectedProfile.type === 'owner' ? (
+          <OwnerModal 
+            profile={selectedProfile} 
+            onClose={() => setSelectedProfile(null)} 
+          />
+        ) : (
+          <ProfileModal 
+            profile={selectedProfile} 
+            onClose={() => setSelectedProfile(null)} 
+          />
+        )
       )}
       
       {houseDetailsModalOpen && <HouseDetailsModal />}
@@ -2224,7 +3128,7 @@ const EmailModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold flex items-center">

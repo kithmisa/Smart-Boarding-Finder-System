@@ -34,22 +34,591 @@ const loginAdmin = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const [users] = await db.query("SELECT * FROM users");
-    res.json({ success: true, users });
+    // Select all fields except password_hash and reset_token for security
+                    const [users] = await db.query(`
+                  SELECT
+                    id,
+                    username,
+                    email,
+                    first_name,
+                    last_name,
+                    phone,
+                    role,
+                    status,
+                    created_at,
+                    updated_at
+                  FROM users
+                  ORDER BY created_at DESC
+                `);
+
+    // Get activity summaries for each user
+    const usersWithActivity = await Promise.all(
+      users.map(async (user) => {
+        try {
+          // Get visit requests summary with boarding house details
+          const [visitRequests] = await db.query(`
+            SELECT 
+              COUNT(*) as total_requests,
+              SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_requests,
+              SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_requests,
+              SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_requests
+            FROM visit_requests 
+            WHERE user_id = ?
+          `, [user.id]);
+
+          // Get detailed visit requests with boarding house information
+          const [visitRequestsDetails] = await db.query(`
+            SELECT 
+              vr.id,
+              vr.status,
+              vr.requested_date,
+              vr.created_at,
+              h.id as house_id,
+              h.title as house_title,
+              h.address as house_address
+            FROM visit_requests vr
+            JOIN houses h ON vr.boarding_id = h.id
+            WHERE vr.user_id = ?
+            ORDER BY vr.created_at DESC
+            LIMIT 10
+          `, [user.id]);
+
+          // Get waiting list summary
+          const [waitingList] = await db.query(`
+            SELECT 
+              COUNT(*) as total_waiting,
+              SUM(CASE WHEN status = 'waiting' THEN 1 ELSE 0 END) as active_waiting,
+              SUM(CASE WHEN status = 'notified' THEN 1 ELSE 0 END) as notified_waiting
+            FROM waiting_list 
+            WHERE user_id = ?
+          `, [user.id]);
+
+          // Get detailed waiting list with boarding house information
+          const [waitingListDetails] = await db.query(`
+            SELECT 
+              wl.id,
+              wl.status,
+              wl.joined_at,
+              wl.notified_at,
+              h.id as house_id,
+              h.title as house_title,
+              h.address as house_address
+            FROM waiting_list wl
+            JOIN houses h ON wl.house_id = h.id
+            WHERE wl.user_id = ?
+            ORDER BY wl.joined_at DESC
+            LIMIT 10
+          `, [user.id]);
+
+          // Get reviews summary
+          const [reviews] = await db.query(`
+            SELECT 
+              COUNT(*) as total_reviews,
+              AVG(rating) as average_rating,
+              AVG(cleanliness) as avg_cleanliness,
+              AVG(location) as avg_location,
+              AVG(value) as avg_value,
+              AVG(amenities) as avg_amenities
+            FROM reviews 
+            WHERE user_id = ?
+          `, [user.id]);
+
+          // Get detailed reviews with boarding house information
+          const [reviewsDetails] = await db.query(`
+            SELECT 
+              r.id,
+              r.rating,
+              r.title,
+              r.comment,
+              r.cleanliness,
+              r.location,
+              r.value,
+              r.amenities,
+              r.created_at,
+              h.id as house_id,
+              h.title as house_title,
+              h.address as house_address
+            FROM reviews r
+            JOIN houses h ON r.boarding_id = h.id
+            WHERE r.user_id = ?
+            ORDER BY r.created_at DESC
+            LIMIT 10
+          `, [user.id]);
+
+          // Get bookings summary (including short-term stays) - COMMENTED OUT UNTIL BOOKINGS TABLE IS CREATED
+          // const [bookings] = await db.query(`
+          //   SELECT 
+          //     COUNT(*) as total_bookings,
+          //     SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_bookings,
+          //     SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_bookings,
+          //     SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_bookings
+          //   FROM bookings 
+          //   WHERE user_id = ?
+          // `, [user.id]);
+          const bookings = [{ total_bookings: 0, pending_bookings: 0, confirmed_bookings: 0, cancelled_bookings: 0 }];
+
+          // Get recent activity (last 30 days)
+          const [recentActivity] = await db.query(`
+            SELECT 
+              (SELECT COUNT(*) FROM visit_requests WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_visits,
+              (SELECT COUNT(*) FROM waiting_list WHERE user_id = ? AND joined_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_waiting,
+              (SELECT COUNT(*) FROM reviews WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_reviews,
+              0 as recent_bookings
+          `, [user.id, user.id, user.id]);
+
+          // Convert string values to numbers for proper display
+          const reviewsData = reviews[0] || { total_reviews: 0, average_rating: 0, avg_cleanliness: 0, avg_location: 0, avg_value: 0, avg_amenities: 0 };
+          const processedReviews = {
+            ...reviewsData,
+            average_rating: reviewsData.average_rating ? parseFloat(reviewsData.average_rating) : 0,
+            avg_cleanliness: reviewsData.avg_cleanliness ? parseFloat(reviewsData.avg_cleanliness) : 0,
+            avg_location: reviewsData.avg_location ? parseFloat(reviewsData.avg_location) : 0,
+            avg_value: reviewsData.avg_value ? parseFloat(reviewsData.avg_value) : 0,
+            avg_amenities: reviewsData.avg_amenities ? parseFloat(reviewsData.avg_amenities) : 0
+          };
+
+          // Use recent activity data as fallback if summary shows 0 but we have details
+          const recentData = recentActivity[0] || { recent_visits: 0, recent_waiting: 0, recent_reviews: 0, recent_bookings: 0 };
+          
+          const userWithActivity = {
+            ...user,
+            activity: {
+              visitRequests: {
+                summary: visitRequests[0] || { 
+                  total_requests: visitRequestsDetails.length || recentData.recent_visits, 
+                  pending_requests: 0, 
+                  confirmed_requests: 0, 
+                  rejected_requests: 0 
+                },
+                details: visitRequestsDetails || []
+              },
+              waitingList: {
+                summary: waitingList[0] || { 
+                  total_waiting: waitingListDetails.length || recentData.recent_waiting, 
+                  active_waiting: 0, 
+                  notified_waiting: 0 
+                },
+                details: waitingListDetails || []
+              },
+              reviews: {
+                summary: {
+                  ...processedReviews,
+                  total_reviews: processedReviews.total_reviews || reviewsDetails.length || recentData.recent_reviews
+                },
+                details: reviewsDetails || []
+              },
+              bookings: bookings[0] || { total_bookings: 0, pending_bookings: 0, confirmed_bookings: 0, cancelled_bookings: 0 },
+              recentActivity: recentData
+            }
+          };
+
+          // Debug logging for first user (commented out after fixing data structure)
+          // if (user.id === users[0]?.id) {
+          //   console.log(`🔍 Debug - User ${user.id} activity data:`, {
+          //     visitRequests: visitRequests[0],
+          //     waitingList: waitingList[0],
+          //     reviews: reviews[0],
+          //     recentActivity: recentActivity[0],
+          //     visitRequestsDetails: visitRequestsDetails.length,
+          //     waitingListDetails: waitingListDetails.length,
+          //     reviewsDetails: reviewsDetails.length
+          //   });
+          // }
+
+          return userWithActivity;
+        } catch (activityError) {
+          console.error(`Error fetching activity for user ${user.id}:`, activityError);
+          return {
+            ...user,
+            activity: {
+              visitRequests: { total_requests: 0, pending_requests: 0, confirmed_requests: 0, rejected_requests: 0 },
+              waitingList: { total_waiting: 0, active_waiting: 0, notified_waiting: 0 },
+              reviews: { total_reviews: 0, average_rating: 0, avg_cleanliness: 0, avg_location: 0, avg_value: 0, avg_amenities: 0 },
+              bookings: { total_bookings: 0, pending_bookings: 0, confirmed_bookings: 0, cancelled_bookings: 0 },
+              recentActivity: { recent_visits: 0, recent_waiting: 0, recent_reviews: 0, recent_bookings: 0 }
+            }
+          };
+        }
+      })
+    );
+
+    res.json({ success: true, users: usersWithActivity });
   } catch (err) {
     console.error("Error fetching users:", err);
     res.status(500).json({ success: false, message: "Error fetching users" });
   }
 };
 
-// Get all owners
+// Get all owners with activity data
 const getAllOwners = async (req, res) => {
   try {
-    const [owners] = await db.query("SELECT * FROM owner");
-    res.json({ success: true, owners });
+    // Select all owner fields
+    const [owners] = await db.query(`
+      SELECT
+        id,
+        name,
+        email,
+        nic,
+        contact
+      FROM owner
+      ORDER BY id DESC
+    `);
+
+    // Get activity summaries for each owner
+    const ownersWithActivity = await Promise.all(
+      owners.map(async (owner) => {
+        try {
+          // Get properties summary
+          const [properties] = await db.query(`
+            SELECT
+              COUNT(*) as total_properties,
+              SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_properties,
+              SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_properties,
+              SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_properties
+            FROM houses
+            WHERE owner_id = ?
+          `, [owner.id]);
+
+          // Get recent properties (last 5)
+          const [recentProperties] = await db.query(`
+            SELECT
+              h.id,
+              h.title,
+              h.location,
+              h.price,
+              h.status,
+              h.availabilityStatus,
+              h.created_at
+            FROM houses h
+            WHERE h.owner_id = ?
+            ORDER BY h.created_at DESC
+            LIMIT 5
+          `, [owner.id]);
+
+          // Get visit requests for owner's properties
+          const [visitRequests] = await db.query(`
+            SELECT
+              COUNT(*) as total_requests,
+              SUM(CASE WHEN vr.status = 'pending' THEN 1 ELSE 0 END) as pending_requests,
+              SUM(CASE WHEN vr.status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_requests,
+              SUM(CASE WHEN vr.status = 'rejected' THEN 1 ELSE 0 END) as rejected_requests
+            FROM visit_requests vr
+            JOIN houses h ON vr.boarding_id = h.id
+            WHERE h.owner_id = ?
+          `, [owner.id]);
+
+          // Get recent visit requests (last 5)
+          const [recentVisitRequests] = await db.query(`
+            SELECT
+              vr.id as request_id,
+              vr.boarding_id as house_id,
+              h.title as house_title,
+              h.address as house_address,
+              vr.status,
+              vr.requested_date,
+              vr.created_at,
+              u.username as user_name,
+              u.email as user_email
+            FROM visit_requests vr
+            JOIN houses h ON vr.boarding_id = h.id
+            JOIN users u ON vr.user_id = u.id
+            WHERE h.owner_id = ?
+            ORDER BY vr.created_at DESC
+            LIMIT 5
+          `, [owner.id]);
+
+          // Get reviews for owner's properties
+          const [reviews] = await db.query(`
+            SELECT
+              COUNT(*) as total_reviews,
+              AVG(rating) as average_rating,
+              AVG(cleanliness) as avg_cleanliness,
+              AVG(r.location) as avg_location,
+              AVG(value) as avg_value,
+              AVG(amenities) as avg_amenities
+            FROM reviews r
+            JOIN houses h ON r.boarding_id = h.id
+            WHERE h.owner_id = ?
+          `, [owner.id]);
+
+          // Get recent reviews (last 5)
+          const [recentReviews] = await db.query(`
+            SELECT
+              r.id as review_id,
+              r.boarding_id as house_id,
+              h.title as house_title,
+              h.address as house_address,
+              r.rating,
+              r.title as review_title,
+              r.comment as review_comment,
+              r.created_at,
+              u.username as user_name
+            FROM reviews r
+            JOIN houses h ON r.boarding_id = h.id
+            JOIN users u ON r.user_id = u.id
+            WHERE h.owner_id = ?
+            ORDER BY r.created_at DESC
+            LIMIT 5
+          `, [owner.id]);
+
+          // Get waiting list for owner's properties
+          const [waitingList] = await db.query(`
+            SELECT
+              COUNT(*) as total_waiting,
+              SUM(CASE WHEN wl.status = 'waiting' THEN 1 ELSE 0 END) as active_waiting,
+              SUM(CASE WHEN wl.status = 'notified' THEN 1 ELSE 0 END) as notified_waiting
+            FROM waiting_list wl
+            JOIN houses h ON wl.house_id = h.id
+            WHERE h.owner_id = ?
+          `, [owner.id]);
+
+          // Get recent waiting list entries (last 5)
+          const [recentWaitingList] = await db.query(`
+            SELECT
+              wl.id as waiting_id,
+              wl.house_id,
+              h.title as house_title,
+              h.address as house_address,
+              wl.status,
+              wl.joined_at,
+              wl.notified_at,
+              u.username as user_name,
+              u.email as user_email
+            FROM waiting_list wl
+            JOIN houses h ON wl.house_id = h.id
+            JOIN users u ON wl.user_id = u.id
+            WHERE h.owner_id = ?
+            ORDER BY wl.joined_at DESC
+            LIMIT 5
+          `, [owner.id]);
+
+          // Get recent activity (30 days)
+          const [recentActivity] = await db.query(`
+            SELECT
+              (SELECT COUNT(*) FROM houses h WHERE h.owner_id = ? AND h.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_properties,
+              (SELECT COUNT(*) FROM visit_requests vr JOIN houses h ON vr.boarding_id = h.id WHERE h.owner_id = ? AND vr.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_visits,
+              (SELECT COUNT(*) FROM reviews r JOIN houses h ON r.boarding_id = h.id WHERE h.owner_id = ? AND r.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_reviews,
+              (SELECT COUNT(*) FROM waiting_list wl JOIN houses h ON wl.house_id = h.id WHERE h.owner_id = ? AND wl.joined_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as recent_waiting
+          `, [owner.id, owner.id, owner.id, owner.id]);
+
+          // Process reviews data with type conversion
+          const reviewsData = reviews[0] || { total_reviews: 0, average_rating: 0, avg_cleanliness: 0, avg_location: 0, avg_value: 0, avg_amenities: 0 };
+          const processedReviews = {
+            ...reviewsData,
+            average_rating: reviewsData.average_rating ? parseFloat(reviewsData.average_rating) : 0,
+            avg_cleanliness: reviewsData.avg_cleanliness ? parseFloat(reviewsData.avg_cleanliness) : 0,
+            avg_location: reviewsData.avg_location ? parseFloat(reviewsData.avg_location) : 0,
+            avg_value: reviewsData.avg_value ? parseFloat(reviewsData.avg_value) : 0,
+            avg_amenities: reviewsData.avg_amenities ? parseFloat(reviewsData.avg_amenities) : 0
+          };
+
+          const recentData = recentActivity[0] || { recent_properties: 0, recent_visits: 0, recent_reviews: 0, recent_waiting: 0 };
+
+          const ownerWithActivity = {
+            ...owner,
+            activity: {
+              properties: {
+                summary: properties[0] || {
+                  total_properties: recentProperties.length || recentData.recent_properties,
+                  pending_properties: 0,
+                  approved_properties: 0,
+                  rejected_properties: 0,
+                  available_properties: 0,
+                  unavailable_properties: 0
+                },
+                details: recentProperties || []
+              },
+              visitRequests: {
+                summary: visitRequests[0] || {
+                  total_requests: recentVisitRequests.length || recentData.recent_visits,
+                  pending_requests: 0,
+                  confirmed_requests: 0,
+                  rejected_requests: 0
+                },
+                details: recentVisitRequests || []
+              },
+              reviews: {
+                summary: {
+                  ...processedReviews,
+                  total_reviews: processedReviews.total_reviews || recentReviews.length || recentData.recent_reviews
+                },
+                details: recentReviews || []
+              },
+              waitingList: {
+                summary: waitingList[0] || {
+                  total_waiting: recentWaitingList.length || recentData.recent_waiting,
+                  active_waiting: 0,
+                  notified_waiting: 0
+                },
+                details: recentWaitingList || []
+              },
+              recentActivity: recentData
+            }
+          };
+
+          return ownerWithActivity;
+        } catch (activityError) {
+          console.error(`Error fetching activity for owner ${owner.id}:`, activityError);
+          return {
+            ...owner,
+            activity: {
+              properties: { summary: { total_properties: 0, pending_properties: 0, approved_properties: 0, rejected_properties: 0, available_properties: 0, unavailable_properties: 0 }, details: [] },
+              visitRequests: { summary: { total_requests: 0, pending_requests: 0, confirmed_requests: 0, rejected_requests: 0 }, details: [] },
+              reviews: { summary: { total_reviews: 0, average_rating: 0, avg_cleanliness: 0, avg_location: 0, avg_value: 0, avg_amenities: 0 }, details: [] },
+              waitingList: { summary: { total_waiting: 0, active_waiting: 0, notified_waiting: 0 }, details: [] },
+              recentActivity: { recent_properties: 0, recent_visits: 0, recent_reviews: 0, recent_waiting: 0 }
+            }
+          };
+        }
+      })
+    );
+
+    res.json({ success: true, owners: ownersWithActivity });
   } catch (err) {
     console.error("Error fetching owners:", err);
-    res.status(500).json({ success: false, message: "Error fetching owner" });
+    res.status(500).json({ success: false, message: "Error fetching owners" });
+  }
+};
+
+// Get waiting list for a specific house (for owner notifications)
+const getHouseWaitingList = async (req, res) => {
+  try {
+    const houseId = req.params.houseId;
+    
+    // Get waiting list for this house
+    const [waitingList] = await db.query(`
+      SELECT 
+        wl.id as waiting_id,
+        wl.user_id,
+        wl.name,
+        wl.email,
+        wl.phone,
+        wl.message,
+        wl.status,
+        wl.joined_at,
+        wl.notified_at,
+        u.username,
+        u.first_name,
+        u.last_name
+      FROM waiting_list wl
+      LEFT JOIN users u ON wl.user_id = u.id
+      WHERE wl.house_id = ?
+      ORDER BY wl.joined_at DESC
+    `, [houseId]);
+
+    res.json({ 
+      success: true, 
+      waitingList: waitingList || []
+    });
+  } catch (err) {
+    console.error("Error fetching house waiting list:", err);
+    res.status(500).json({ success: false, message: "Error fetching waiting list" });
+  }
+};
+
+// Get house details with waiting list notifications
+const getHouseDetails = async (req, res) => {
+  try {
+    const houseId = req.params.id;
+    
+    // Get house details
+    const [houses] = await db.query(`
+      SELECT h.*, o.name as owner_name, o.email as owner_email, o.contact as owner_phone
+      FROM houses h
+      LEFT JOIN owner o ON h.owner_id = o.id
+      WHERE h.id = ?
+    `, [houseId]);
+
+    if (houses.length === 0) {
+      return res.status(404).json({ success: false, message: "House not found" });
+    }
+
+    const house = houses[0];
+
+    // Get waiting list notifications for this house
+    const [waitingList] = await db.query(`
+      SELECT 
+        wl.id as waiting_id,
+        wl.user_id,
+        wl.status,
+        wl.joined_at,
+        wl.notified_at,
+        u.username,
+        u.email as user_email,
+        u.first_name,
+        u.last_name,
+        u.phone as user_phone
+      FROM waiting_list wl
+      JOIN users u ON wl.user_id = u.id
+      WHERE wl.house_id = ?
+      ORDER BY wl.joined_at DESC
+    `, [houseId]);
+
+    // Get visit requests for this house
+    const [visitRequests] = await db.query(`
+      SELECT 
+        vr.id as request_id,
+        vr.user_id,
+        vr.status,
+        vr.requested_date,
+        vr.created_at,
+        u.username,
+        u.email as user_email,
+        u.first_name,
+        u.last_name,
+        u.phone as user_phone
+      FROM visit_requests vr
+      JOIN users u ON vr.user_id = u.id
+      WHERE vr.boarding_id = ?
+      ORDER BY vr.created_at DESC
+    `, [houseId]);
+
+    // Get reviews for this house
+    const [reviews] = await db.query(`
+      SELECT 
+        r.id as review_id,
+        r.user_id,
+        r.rating,
+        r.title as review_title,
+        r.comment as review_comment,
+        r.created_at,
+        u.username,
+        u.email as user_email,
+        u.first_name,
+        u.last_name
+      FROM reviews r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.boarding_id = ?
+      ORDER BY r.created_at DESC
+    `, [houseId]);
+
+    // Process images if they exist
+    let processedImages = [];
+    if (house.images) {
+      try {
+        // Try to parse as JSON first
+        processedImages = JSON.parse(house.images);
+      } catch (e) {
+        // If not JSON, try splitting by comma
+        processedImages = house.images.split(',').map(img => img.trim()).filter(img => img);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      house: {
+        ...house,
+        images: processedImages,
+        notifications: {
+          waitingList: waitingList || [],
+          visitRequests: visitRequests || [],
+          reviews: reviews || []
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching house details:", err);
+    res.status(500).json({ success: false, message: "Error fetching house details" });
   }
 };
 
@@ -514,6 +1083,8 @@ module.exports = {
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getHouseDetails,
+  getHouseWaitingList,
   getAllVisitRequests,
   sendEmail,
   confirmHouse,

@@ -169,7 +169,7 @@
   cursor: pointer;
  /* border: 3px solid rgba(243, 241, 238, 0.432);*/
   position: relative;
-  height:520px;
+  height:480px;
 }
 
 .boarding-card::before {
@@ -202,7 +202,7 @@
 /* Card image wrapper */
 .card-image-wrapper {
   position: relative;
-  height: 200px;
+  height: 150px;
   overflow: hidden;
   background: linear-gradient(135deg, #eed8c5, #e4d1b8);
 }

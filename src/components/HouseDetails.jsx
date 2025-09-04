@@ -129,6 +129,10 @@ const HouseDetails = () => {
   const [visitRequests, setVisitRequests] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loadingVisitRequests, setLoadingVisitRequests] = useState(false);
+  
+  // ✅ Waiting list state
+  const [waitingListData, setWaitingListData] = useState({});
+  const [loadingWaitingList, setLoadingWaitingList] = useState(false);
 
   // ✅ NEW: Smooth scrolling function
   const scrollToSection = (sectionId) => {
@@ -597,6 +601,13 @@ const HouseDetails = () => {
     }
   }, [owner_id]);
 
+  // ✅ Fetch waiting list data when listings are loaded
+  useEffect(() => {
+    if (myListings.length > 0) {
+      fetchWaitingListData();
+    }
+  }, [myListings]);
+
   // ✅ Fetch owner's listings function - UPDATED to calculate stats
   const fetchMyListings = async () => {
     if (!owner_id) return;
@@ -665,6 +676,41 @@ const HouseDetails = () => {
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // ✅ Fetch waiting list data for all properties
+  const fetchWaitingListData = async () => {
+    if (!owner_id || !myListings.length) return;
+    
+    setLoadingWaitingList(true);
+    try {
+      const waitingListPromises = myListings.map(async (house) => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/houses/${house.id}/waiting-list`);
+          if (response.ok) {
+            const data = await response.json();
+            return { houseId: house.id, waitingList: data.waitingList || [] };
+          }
+          return { houseId: house.id, waitingList: [] };
+        } catch (error) {
+          console.error(`Error fetching waiting list for house ${house.id}:`, error);
+          return { houseId: house.id, waitingList: [] };
+        }
+      });
+
+      const results = await Promise.all(waitingListPromises);
+      const waitingListMap = {};
+      results.forEach(result => {
+        waitingListMap[result.houseId] = result.waitingList;
+      });
+      
+      setWaitingListData(waitingListMap);
+      console.log('✅ Fetched waiting list data:', waitingListMap);
+    } catch (error) {
+      console.error('Error fetching waiting list data:', error);
+    } finally {
+      setLoadingWaitingList(false);
     }
   };
 
@@ -2111,13 +2157,101 @@ const HouseDetails = () => {
               <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-lg">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                   <FaBell className="text-pink-600" />
-                  Notifications
+                  Waiting List Notifications
                 </h2>
-                <div className="text-center py-12 bg-white/80 rounded-lg">
-                  <FaBell className="mx-auto text-6xl text-gray-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Notifications</h3>
-                  <p className="text-gray-500">Notifications will appear here.</p>
-                </div>
+                
+                {loadingWaitingList ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading waiting list data...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {myListings.length === 0 ? (
+                      <div className="text-center py-12 bg-white/80 rounded-lg">
+                        <FaBell className="mx-auto text-6xl text-gray-300 mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No Properties</h3>
+                        <p className="text-gray-500">You need to add properties first to see waiting list notifications.</p>
+                      </div>
+                    ) : (
+                      myListings.map((house) => {
+                        const waitingList = waitingListData[house.id] || [];
+                        const totalWaiting = waitingList.length;
+                        const waitingCount = waitingList.filter(item => item.status === 'waiting').length;
+                        const notifiedCount = waitingList.filter(item => item.status === 'notified').length;
+                        
+                        return (
+                          <div key={house.id} className="bg-white/60 rounded-lg p-6 border border-gray-200">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800">{house.title}</h3>
+                                <p className="text-sm text-gray-600">{house.location}</p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-orange-600">{totalWaiting}</div>
+                                  <div className="text-xs text-gray-500">Total</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-xl font-bold text-yellow-600">{waitingCount}</div>
+                                  <div className="text-xs text-gray-500">Waiting</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-xl font-bold text-blue-600">{notifiedCount}</div>
+                                  <div className="text-xs text-gray-500">Notified</div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {totalWaiting > 0 ? (
+                              <div className="space-y-3">
+                                <h4 className="font-medium text-gray-700 mb-3">Users on Waiting List:</h4>
+                                <div className="max-h-64 overflow-y-auto space-y-2">
+                                  {waitingList.map((user, index) => (
+                                    <div key={user.waiting_id} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-medium text-gray-800">
+                                              {user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                              user.status === 'waiting' ? 'bg-yellow-100 text-yellow-700' :
+                                              user.status === 'notified' ? 'bg-blue-100 text-blue-700' :
+                                              'bg-gray-100 text-gray-700'
+                                            }`}>
+                                              {user.status}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-gray-600">
+                                            <div>📧 {user.email}</div>
+                                            {user.phone && <div>📞 {user.phone}</div>}
+                                            {user.message && <div className="mt-1 text-gray-500 italic">"{user.message}"</div>}
+                                          </div>
+                                        </div>
+                                        <div className="text-right text-xs text-gray-500">
+                                          <div>Joined: {new Date(user.joined_at).toLocaleDateString()}</div>
+                                          {user.notified_at && (
+                                            <div>Notified: {new Date(user.notified_at).toLocaleDateString()}</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-6 text-gray-500">
+                                <FaBell className="mx-auto text-3xl text-gray-300 mb-2" />
+                                <p>No users on waiting list for this property</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
