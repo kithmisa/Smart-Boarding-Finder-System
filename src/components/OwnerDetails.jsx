@@ -12,11 +12,14 @@ const OwnerDetails = () => {
     email: '',
     nic: '',
     contact: '',
+    password: '',
+    confirmPassword: '',
   });
 
   const [errors, setErrors] = useState({});
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginNIC, setLoginNIC] = useState('');
+  const [loginName, setLoginName] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
   // OTP related states
@@ -36,6 +39,10 @@ const OwnerDetails = () => {
   // ✅ Terms and conditions state
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  
+  // ✅ Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ✅ Enhanced NIC Validation with DOB & Gender Detection
   const parseNIC = (nic) => {
@@ -126,6 +133,16 @@ const OwnerDetails = () => {
     return contactRegex.test(cleanContact);
   };
 
+  const validatePassword = (password) => {
+    // Password must be at least 8 characters with at least one uppercase, one lowercase, one number, and one special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  const validateConfirmPassword = (password, confirmPassword) => {
+    return password === confirmPassword;
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -156,6 +173,18 @@ const OwnerDetails = () => {
       newErrors.contact = 'Contact number must be exactly 10 digits';
     }
 
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = 'Password must be at least 8 characters with uppercase, lowercase, number, and special character';
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (!validateConfirmPassword(formData.password, formData.confirmPassword)) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     if (!acceptedTerms) {
       newErrors.terms = 'You must accept the terms and conditions to register';
     }
@@ -164,19 +193,14 @@ const OwnerDetails = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateLoginNIC = () => {
-    if (!loginNIC.trim()) {
-      setLoginError('NIC is required');
+  const validateLoginCredentials = () => {
+    if (!loginName.trim()) {
+      setLoginError('Name is required');
       return false;
     }
-    if (!validateNIC(loginNIC)) {
-      setLoginError('Please enter a valid NIC format');
-    } else {
-      const nicValidation = parseNIC(loginNIC);
-      if (!nicValidation.valid) {
-        setLoginError(nicValidation.message);
-        return false;
-      }
+    if (!loginPassword.trim()) {
+      setLoginError('Password is required');
+      return false;
     }
     setLoginError('');
     return true;
@@ -344,7 +368,8 @@ const OwnerDetails = () => {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         nic: formData.nic.replace(/\s+/g, '').toUpperCase(),
-        contact: formData.contact.replace(/[\s\-\+]/g, '')
+        contact: formData.contact.replace(/[\s\-\+]/g, ''),
+        password: formData.password
       };
 
       const res = await fetch('http://localhost:5000/api/owner/register', {
@@ -367,6 +392,8 @@ const OwnerDetails = () => {
         email: '',
         nic: '',
         contact: '',
+        password: '',
+        confirmPassword: '',
       });
       setNicInfo(null);
       setShowNicInfo(false);
@@ -388,17 +415,18 @@ const OwnerDetails = () => {
   };
 
   const handleLogin = async () => {
-    if (!validateLoginNIC()) {
+    if (!validateLoginCredentials()) {
       return;
     }
 
     try {
-      const cleanedNIC = loginNIC.replace(/\s+/g, '').toUpperCase();
-      
       const res = await fetch('http://localhost:5000/api/owner/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nic: cleanedNIC }),
+        body: JSON.stringify({ 
+          name: loginName.trim(),
+          password: loginPassword
+        }),
       });
 
       const data = await res.json();
@@ -410,6 +438,8 @@ const OwnerDetails = () => {
       alert('✅ Login successful');
       setShowLoginModal(false);
       setLoginError('');
+      setLoginName('');
+      setLoginPassword('');
 
       console.log('Login response:', data);
 
@@ -425,8 +455,13 @@ const OwnerDetails = () => {
     }
   };
 
-  const handleLoginNICChange = (e) => {
-    setLoginNIC(e.target.value);
+  const handleLoginChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'loginName') {
+      setLoginName(value);
+    } else if (name === 'loginPassword') {
+      setLoginPassword(value);
+    }
     if (loginError) {
       setLoginError('');
     }
@@ -576,7 +611,59 @@ const OwnerDetails = () => {
                 <p className="text-xs text-gray-600 mt-1">
                   Example: 0771234567
                 </p>
-                             </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="relative">
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`w-full border px-4 py-2 pr-10 rounded text-black placeholder-gray-500 ${
+                        errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                </div>
+
+                <div>
+                  <div className="relative">
+                    <input
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm Password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`w-full border px-4 py-2 pr-10 rounded text-black placeholder-gray-500 ${
+                        errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirmPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                </div>
+              </div>
+              
+              <p className="text-xs text-gray-600 mt-1">
+                Password must contain: 8+ chars, uppercase, lowercase, number, special character
+              </p>
 
                {/* ✅ Terms and Conditions */}
                <div className="mt-4">
@@ -711,13 +798,24 @@ const OwnerDetails = () => {
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100]">
           <div className="bg-white rounded-xl p-8 shadow-xl w-96 text-center">
-            <h2 className="text-xl font-bold mb-4 text-black">Login with NIC</h2>
+            <h2 className="text-xl font-bold mb-4 text-black">Login</h2>
             <div className="mb-4">
               <input
+                name="loginName"
                 type="text"
-                placeholder="Enter NIC"
-                value={loginNIC}
-                onChange={handleLoginNICChange}
+                placeholder="Enter Name"
+                value={loginName}
+                onChange={handleLoginChange}
+                className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 mb-3 ${
+                  loginError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
+              />
+              <input
+                name="loginPassword"
+                type="password"
+                placeholder="Enter Password"
+                value={loginPassword}
+                onChange={handleLoginChange}
                 className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
                   loginError ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 }`}
@@ -734,15 +832,16 @@ const OwnerDetails = () => {
               onClick={() => {
                 setShowLoginModal(false);
                 setLoginError('');
-                setLoginNIC('');
+                setLoginName('');
+                setLoginPassword('');
               }}
               className="text-sm text-gray-600 hover:underline cursor-pointer"
             >
               Cancel
             </p>
           </div>
-                 </div>
-       )}
+        </div>
+      )}
 
        {/* ✅ Terms and Conditions Modal */}
        {showTermsModal && (
