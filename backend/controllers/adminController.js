@@ -1,5 +1,6 @@
 const db = require('../db');
 const nodemailer = require('nodemailer');
+const { decrypt, maskData, maskAccountNumber } = require('../utils/encryption');
 require('dotenv').config();
 
 // Email transporter setup
@@ -264,10 +265,20 @@ const getAllOwners = async (req, res) => {
       ORDER BY id DESC
     `);
 
-    // Get activity summaries for each owner
+    // Get activity summaries for each owner and decrypt NIC
     const ownersWithActivity = await Promise.all(
       owners.map(async (owner) => {
         try {
+          // Decrypt and mask NIC for security
+          const decryptedNIC = decrypt(owner.nic);
+          const maskedNIC = maskData(decryptedNIC, 4);
+          
+          // Update owner object with both original and masked NIC
+          const ownerWithMaskedNIC = {
+            ...owner,
+            nic: maskedNIC,           // For display
+            nic_original: decryptedNIC // For search functionality
+          };
           // Get properties summary
           const [properties] = await db.query(`
             SELECT
@@ -456,11 +467,14 @@ const getAllOwners = async (req, res) => {
             }
           };
 
-          return ownerWithActivity;
+          return {
+            ...ownerWithActivity,
+            ...ownerWithMaskedNIC
+          };
         } catch (activityError) {
           console.error(`Error fetching activity for owner ${owner.id}:`, activityError);
           return {
-            ...owner,
+            ...ownerWithMaskedNIC,
             activity: {
               properties: { summary: { total_properties: 0, pending_properties: 0, approved_properties: 0, rejected_properties: 0, available_properties: 0, unavailable_properties: 0 }, details: [] },
               visitRequests: { summary: { total_requests: 0, pending_requests: 0, confirmed_requests: 0, rejected_requests: 0 }, details: [] },
@@ -1077,6 +1091,70 @@ const sendEmail = async (req, res) => {
   }
 };
 
+// Get owner banking details
+const getOwnerBankingDetails = async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+    
+    const [banking] = await db.query(`
+      SELECT
+        id,
+        owner_id,
+        account_holder_name,
+        account_type,
+        account_number,
+        bank_name,
+        branch_name,
+        branch_code,
+        created_at,
+        updated_at
+      FROM owner_bank_details
+      WHERE owner_id = ?
+    `, [ownerId]);
+
+    if (banking.length === 0) {
+      return res.status(200).json({ 
+        success: true, 
+        banking: null,
+        message: 'No banking details found for this owner'
+      });
+    }
+
+    // Decrypt and mask account number
+    let accountNumber, maskedAccountNumber;
+    
+    try {
+      // Try to decrypt (in case it's already encrypted)
+      accountNumber = decrypt(banking[0].account_number);
+      if (!accountNumber) {
+        // If decryption fails, assume it's plain text
+        accountNumber = banking[0].account_number;
+      }
+    } catch (error) {
+      // If decryption throws error, use original (plain text)
+      accountNumber = banking[0].account_number;
+    }
+    
+    maskedAccountNumber = maskAccountNumber(accountNumber);
+
+    const bankingDetails = {
+      ...banking[0],
+      account_number: maskedAccountNumber // Return masked account number for display
+    };
+
+    return res.status(200).json({ 
+      success: true, 
+      banking: bankingDetails
+    });
+  } catch (error) {
+    console.error('Error fetching owner banking details:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server error while fetching banking details' 
+    });
+  }
+};
+
 module.exports = {
   loginAdmin,
   getAllUsers,  
@@ -1094,5 +1172,6 @@ module.exports = {
   deleteHouse,
   replyToComment,
   markAllMessagesAsRead,
-  syncEmailReplies
+  syncEmailReplies,
+  getOwnerBankingDetails
 };

@@ -240,6 +240,7 @@ const AdminDashboard = () => {
   const [selectedComment, setSelectedComment] = useState(null);
   const [messageFilter, setMessageFilter] = useState('all'); // 'all', 'unread', 'replied'
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('basic');
   
   // Email modal states
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -249,6 +250,20 @@ const AdminDashboard = () => {
   
   // Use ref for direct DOM access
   const replyTextareaRef = useRef(null);
+
+  // Function to fetch owner banking details
+  const fetchOwnerBankingDetails = async (ownerId) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/owners/${ownerId}/banking`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.banking || null;
+      }
+    } catch (error) {
+      console.error('Error fetching banking details:', error);
+    }
+    return null;
+  };
 
   // Parse combined reply text into a threaded list of segments (admin/user)
   const parseReplyThread = (replyText, repliedAt) => {
@@ -1320,6 +1335,22 @@ const AdminDashboard = () => {
                   Activity Summary
                 </div>
               </button>
+
+
+              <button
+  onClick={() => setActiveTab('banking')}
+  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+    activeTab === 'banking'
+      ? 'bg-white text-purple-600 shadow-sm'
+      : 'text-gray-600 hover:text-gray-800'
+  }`}
+>
+  <div className="flex items-center justify-center gap-2">
+    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+    Bank Details
+  </div>
+</button>
+
             </div>
           </div>
 
@@ -1347,7 +1378,9 @@ const AdminDashboard = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-500">NIC Number</label>
-                      <p className="text-gray-900 text-lg font-mono">{profile?.nic || 'N/A'}</p>
+                      <p className="text-gray-900 text-lg font-mono">
+                        {profile?.nic || 'N/A'}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -1592,7 +1625,70 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
-          </div>
+          {activeTab === 'banking' && (
+  <div className="bg-white border border-gray-200 rounded-lg p-6">
+    <h5 className="text-lg font-semibold text-gray-800 mb-6 flex items-center">
+      <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+      Banking Information
+    </h5>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-gray-500">Bank Name</label>
+          <p className="text-gray-900 text-lg">{profile?.bank_name || 'Not provided'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-500">Account Holder Name</label>
+          <p className="text-gray-900 text-lg">{profile?.account_holder_name || 'Not provided'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-500">Account Number</label>
+          <p className="text-gray-900 text-lg font-mono">
+            {profile?.account_number || 'Not provided'}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-gray-500">Account Type</label>
+          <p className="text-gray-900 text-lg capitalize">{profile?.account_type || 'Not provided'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-500">Branch Name</label>
+          <p className="text-gray-900 text-lg">{profile?.branch_name || 'Not provided'}</p>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-500">Branch Code</label>
+          <p className="text-gray-900 text-lg font-mono">{profile?.branch_code || 'Not provided'}</p>
+        </div>
+      </div>
+    </div>
+    
+    {/* Bank Details Status */}
+    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div>
+          <h6 className="font-medium text-gray-800">Bank Details Status</h6>
+          <p className="text-sm text-gray-600">
+            {profile?.bank_name && profile?.account_number ? 
+              'Complete banking information available' : 
+              'Banking information incomplete'
+            }
+          </p>
+        </div>
+        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+          profile?.bank_name && profile?.account_number ? 
+            'bg-green-100 text-green-800' : 
+            'bg-yellow-100 text-yellow-800'
+        }`}>
+          {profile?.bank_name && profile?.account_number ? 'Complete' : 'Incomplete'}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+  </div>
 
           {/* Footer Actions */}
           <div className="bg-gray-50 px-6 py-4 rounded-b-xl border-t border-gray-200">
@@ -2186,7 +2282,7 @@ const AdminDashboard = () => {
         owner.id?.toString().includes(searchLower) ||
         (owner.name || '').toLowerCase().includes(searchLower) ||
         (owner.email || '').toLowerCase().includes(searchLower) ||
-        (owner.nic || '').toLowerCase().includes(searchLower) ||
+        (owner.nic_original || '').toLowerCase().includes(searchLower) ||
         (owner.contact || '').includes(searchTerm) ||
         (owner.address || '').toLowerCase().includes(searchLower)
       );
@@ -2262,7 +2358,9 @@ const AdminDashboard = () => {
                       <div className="text-sm text-gray-900">{owner.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-mono text-gray-900">{owner.nic}</div>
+                      <div className="text-sm font-mono text-gray-900">
+                        {owner.nic || 'Not provided'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{owner.contact}</div>
@@ -2270,7 +2368,15 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => setSelectedProfile({ ...owner, type: 'owner' })}
+                          onClick={async () => {
+                            const bankingDetails = await fetchOwnerBankingDetails(owner.id);
+                            setSelectedProfile({ 
+                              ...owner, 
+                              type: 'owner',
+                              ...bankingDetails 
+                            });
+                            setActiveTab('basic');
+                          }}
                           className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                         >
                           <Eye size={16} />

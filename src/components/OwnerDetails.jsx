@@ -32,29 +32,44 @@ const OwnerDetails = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   
-  // ✅ NIC validation display states
+  // NIC validation display states
   const [nicInfo, setNicInfo] = useState(null);
   const [showNicInfo, setShowNicInfo] = useState(false);
   
-  // ✅ Terms and conditions state
+  // Terms and conditions state
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  
-  // ✅ Password visibility states
+
+  // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Multi-step form state
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+  
+  // Forgot password states
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordOtp, setForgotPasswordOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1); // 1: email, 2: otp, 3: new password
+  const [forgotPasswordError, setForgotPasswordError] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordOtpSent, setForgotPasswordOtpSent] = useState(false);
+  const [forgotPasswordResendTimer, setForgotPasswordResendTimer] = useState(0);
+  const [generatedOTP, setGeneratedOTP] = useState('');
 
-  // ✅ Enhanced NIC Validation with DOB & Gender Detection
+  // Enhanced NIC Validation with DOB & Gender Detection
   const parseNIC = (nic) => {
     const cleanNIC = nic.replace(/\s+/g, '').toUpperCase();
     let year, dayText;
 
     if (/^[0-9]{9}[VX]$/.test(cleanNIC)) {
-      // Old NIC (before 2016) → XXXXXXXXXV
       year = parseInt("19" + cleanNIC.substring(0, 2)); 
       dayText = cleanNIC.substring(2, 5);
     } else if (/^[0-9]{12}$/.test(cleanNIC)) {
-      // New NIC (after 2016) → YYYYDDDDDDDD
       year = parseInt(cleanNIC.substring(0, 4));
       dayText = cleanNIC.substring(4, 7);
     } else {
@@ -69,27 +84,22 @@ const OwnerDetails = () => {
       dayOfYear -= 500;
     }
 
-    // Validate day of year range (1-366)
     if (dayOfYear < 1 || dayOfYear > 366) {
       return { valid: false, message: "Invalid day number in NIC" };
     }
 
-    // Validate year range (1900 to current year)
     const currentYear = new Date().getFullYear();
     if (year < 1900 || year > currentYear) {
       return { valid: false, message: "Invalid year in NIC" };
     }
 
-    // Convert day of year → actual date
-    const dob = new Date(year, 0); // January 1st
+    const dob = new Date(year, 0);
     dob.setDate(dayOfYear);
 
-    // Check if date is valid (handles leap years, etc.)
     if (dob.getFullYear() !== year) {
       return { valid: false, message: "Invalid date in NIC" };
     }
 
-    // Calculate age
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
     const monthDiff = today.getMonth() - dob.getMonth();
@@ -97,7 +107,6 @@ const OwnerDetails = () => {
       age--;
     }
 
-    // Check minimum age requirement (18 years)
     if (age < 18) {
       return { 
         valid: false, 
@@ -108,7 +117,7 @@ const OwnerDetails = () => {
     return {
       valid: true,
       yearOfBirth: year,
-      dateOfBirth: dob.toISOString().split("T")[0], // YYYY-MM-DD
+      dateOfBirth: dob.toISOString().split("T")[0],
       gender: gender,
       age: age,
       dayOfYear: dayOfYear,
@@ -134,7 +143,6 @@ const OwnerDetails = () => {
   };
 
   const validatePassword = (password) => {
-    // Password must be at least 8 characters with at least one uppercase, one lowercase, one number, and one special character
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   };
@@ -143,19 +151,14 @@ const OwnerDetails = () => {
     return password === confirmPassword;
   };
 
-  const validateForm = () => {
+  // Step validation functions
+  const validateStep1 = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     } else if (formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!formData.nic.trim()) {
@@ -173,6 +176,13 @@ const OwnerDetails = () => {
       newErrors.contact = 'Contact number must be exactly 10 digits';
     }
 
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
+
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
     } else if (!validatePassword(formData.password)) {
@@ -185,12 +195,44 @@ const OwnerDetails = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep3 = () => {
+    const newErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
     if (!acceptedTerms) {
       newErrors.terms = 'You must accept the terms and conditions to register';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const validateForm = () => {
+    return validateStep1() && validateStep2() && validateStep3();
+  };
+
+  // Step navigation functions
+  const nextStep = () => {
+    if (currentStep === 1 && validateStep1()) {
+      setCurrentStep(2);
+    } else if (currentStep === 2 && validateStep2()) {
+      setCurrentStep(3);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
   const validateLoginCredentials = () => {
@@ -200,7 +242,7 @@ const OwnerDetails = () => {
     }
     if (!loginPassword.trim()) {
       setLoginError('Password is required');
-      return false;
+        return false;
     }
     setLoginError('');
     return true;
@@ -210,24 +252,20 @@ const OwnerDetails = () => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
-    // Clear specific error when user starts typing
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
 
-    // Clear NIC info when there's an error
     if (errors.nic && name === 'nic') {
       setNicInfo(null);
       setShowNicInfo(false);
     }
 
-    // If email is changed and was previously verified, reset verification
     if (name === 'email' && isEmailVerified && value.trim().toLowerCase() !== verifiedEmail.toLowerCase()) {
       setIsEmailVerified(false);
       setVerifiedEmail('');
     }
 
-    // ✅ Real-time NIC validation and info display
     if (name === 'nic') {
       if (value.trim()) {
         const validation = parseNIC(value);
@@ -277,7 +315,6 @@ const OwnerDetails = () => {
       setOtpSent(true);
       setShowOTPModal(true);
       
-      // Start resend timer (60 seconds)
       setResendTimer(60);
       const timer = setInterval(() => {
         setResendTimer((prev) => {
@@ -330,7 +367,6 @@ const OwnerDetails = () => {
         return;
       }
 
-      // Email verified successfully
       setIsEmailVerified(true);
       setVerifiedEmail(formData.email.trim().toLowerCase());
       setShowOTPModal(false);
@@ -356,7 +392,6 @@ const OwnerDetails = () => {
       return;
     }
 
-    // Check if email is verified
     if (!isEmailVerified || verifiedEmail.toLowerCase() !== formData.email.trim().toLowerCase()) {
       alert('❌ Please verify your email first');
       return;
@@ -386,7 +421,6 @@ const OwnerDetails = () => {
 
       alert('✅ Registered successfully');
      
-      // Clear form and NIC info
       setFormData({
         name: '',
         email: '',
@@ -475,254 +509,660 @@ const OwnerDetails = () => {
     setResendTimer(0);
   };
 
+  // Generate OTP function
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  // Forgot Password Functions
+  const sendForgotPasswordOTP = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      setForgotPasswordError('Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(forgotPasswordEmail)) {
+      setForgotPasswordError('Please enter a valid email address');
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    setForgotPasswordError('');
+
+    try {
+      // Send OTP to email via API
+      const res = await fetch('http://localhost:5000/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: forgotPasswordEmail.trim().toLowerCase(),
+          purpose: 'password_reset'
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setForgotPasswordError(data.error || 'Failed to send reset code');
+        return;
+      }
+
+      setForgotPasswordOtpSent(true);
+      setForgotPasswordStep(2);
+      
+      setForgotPasswordResendTimer(60);
+      const timer = setInterval(() => {
+        setForgotPasswordResendTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      alert(`📧 Password reset code sent to ${forgotPasswordEmail}`);
+    } catch (err) {
+      console.error('Error sending forgot password OTP:', err);
+      setForgotPasswordError('Server error. Please try again.');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const verifyForgotPasswordOTP = async () => {
+    if (!forgotPasswordOtp.trim()) {
+      setForgotPasswordError('Please enter the verification code');
+      return;
+    }
+
+    if (forgotPasswordOtp.trim().length !== 6) {
+      setForgotPasswordError('Verification code must be 6 digits');
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    setForgotPasswordError('');
+
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: forgotPasswordEmail.trim().toLowerCase(), 
+          otp: forgotPasswordOtp.trim(),
+          purpose: 'password_reset'
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setForgotPasswordError(data.error || 'Invalid verification code');
+        return;
+      }
+
+      // Store the verified OTP for password reset
+      setGeneratedOTP(forgotPasswordOtp.trim());
+      setForgotPasswordStep(3);
+      setForgotPasswordOtp('');
+      alert('✅ Verification successful! Please set your new password.');
+    } catch (err) {
+      console.error('Error verifying forgot password OTP:', err);
+      setForgotPasswordError('Server error. Please try again.');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!newPassword.trim()) {
+      setForgotPasswordError('Please enter a new password');
+      return;
+    }
+
+    if (!validatePassword(newPassword)) {
+      setForgotPasswordError('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+      return;
+    }
+
+    if (!confirmNewPassword.trim()) {
+      setForgotPasswordError('Please confirm your new password');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setForgotPasswordError('Passwords do not match');
+      return;
+    }
+
+    setForgotPasswordLoading(true);
+    setForgotPasswordError('');
+
+    try {
+      const resetData = { 
+        email: forgotPasswordEmail.trim().toLowerCase(),
+        otp: generatedOTP,
+        newPassword: newPassword
+      };
+      
+      console.log('🔐 Sending password reset data:', {
+        email: resetData.email,
+        otp: resetData.otp,
+        passwordLength: resetData.newPassword.length
+      });
+      
+      const res = await fetch('http://localhost:5000/api/auth/reset-password-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resetData),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setForgotPasswordError(data.error || 'Failed to reset password');
+        return;
+      }
+
+      alert('✅ Password reset successfully! You can now login with your new password.');
+      closeForgotPasswordModal();
+    } catch (err) {
+      console.error('Error resetting password:', err);
+      setForgotPasswordError('Server error. Please try again.');
+    } finally {
+      setForgotPasswordLoading(false);
+    }
+  };
+
+  const resendForgotPasswordOTP = async () => {
+    if (forgotPasswordResendTimer > 0) return;
+    await sendForgotPasswordOTP();
+  };
+
+  const closeForgotPasswordModal = () => {
+    setShowForgotPasswordModal(false);
+    setForgotPasswordEmail('');
+    setForgotPasswordOtp('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setForgotPasswordStep(1);
+    setForgotPasswordError('');
+    setForgotPasswordOtpSent(false);
+    setForgotPasswordResendTimer(0);
+    setGeneratedOTP('');
+  };
+
   return (
     <>
       <Navbar />
 
       <div
-        className="relative flex-grow px-8 pt-32 pb-16"
+        className="relative flex-grow px-4 pt-32 pb-16 min-h-screen"
         style={{
           backgroundImage: `url(${bgHero})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        <div className="pt-32 pb-20 px-6 bg-white/50 min-h-screen">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-xl font-bold flex items-center gap-2 mb-4 text-black">
-              <FaUser /> Owner Details
-            </h2>
-            <div className="h-1 w-20 bg-green-600 mt-1 mb-4 rounded-full" />
-            <div className="space-y-4">
-              <div>
+        <div className="pt-16 pb-20 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+              {/* Left Column - Professional Header */}
+              <div className="text-center lg:text-left mt-8 lg:col-span-2">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-white/50 rounded-full shadow-lg mb-6">
+                  <FaUser className="text-3xl text-gray-600 justify-center" />
+                </div>
+                <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">
+                  Owner Registration
+                </h1>
+                <p className="text-white/90 text-xl mb-6 drop-shadow-md">
+                  Join our platform and start listing your properties
+                </p>
+                
+                {/* Features List */}
+                <div className="space-y-3 text-left">
+                  <div className="flex items-center gap-3 text-white/90">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>Easy property listing management</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white/90">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>Secure payment processing</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white/90">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>Real-time booking notifications</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-white/90">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>24/7 customer support</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Main Form Container */}
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-2xl p-6 border border-white/20 lg:col-span-3">
+                {/* Progress Indicator */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      {currentStep === 1 && 'Personal Information & Identity'}
+                      {currentStep === 2 && 'Security Setup'}
+                      {currentStep === 3 && 'Email Verification & Terms'}
+                    </h2>
+                    <span className="text-sm text-gray-600 bg-white/60 px-3 py-1 rounded-full">
+                      Step {currentStep} of {totalSteps}
+                    </span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                    ></div>
+                  </div>
+                  
+                  {/* Step Indicators */}
+                  <div className="flex justify-between mt-3">
+                    {[1, 2, 3].map((step) => (
+                      <div key={step} className="flex flex-col items-center">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                          step <= currentStep 
+                            ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-lg' 
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {step}
+                        </div>
+                        <span className={`text-xs mt-1 transition-colors ${
+                          step <= currentStep ? 'text-gray-800 font-medium' : 'text-gray-500'
+                        }`}>
+                          {step === 1 && 'Identity'}
+                          {step === 2 && 'Security'}
+                          {step === 3 && 'Email & Terms'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 1: Personal Information & Identity */}
+                {currentStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-xl">👤</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-1">Personal Information & Identity</h3>
+                      <p className="text-gray-600 text-sm">Let's start with your basic details and identity verification</p>
+                    </div>
+
+                    {/* Name Field */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
                 <input
                   name="name"
                   type="text"
-                  placeholder="Full Name"
+                        placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                    errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.name 
+                            ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                            : 'border-gray-300 bg-white hover:border-gray-400'
                   }`}
                 />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-              </div>
-
-              <div>
-                <div className="relative">
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="Email Address"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                      errors.email ? 'border-red-500 bg-red-50' : 
-                      isEmailVerified ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                    }`}
-                  />
-                  {isEmailVerified && verifiedEmail.toLowerCase() === formData.email.trim().toLowerCase() && (
-                    <FaCheckCircle className="absolute right-3 top-3 text-green-500" />
-                  )}
-                </div>
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                {isEmailVerified && verifiedEmail.toLowerCase() === formData.email.trim().toLowerCase() ? (
-                  <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
-                    <FaCheckCircle size={12} /> Email verified
-                  </p>
-                ) : (
-                  <button
-                    onClick={sendOTP}
-                    disabled={otpLoading || !formData.email.trim()}
-                    className={`mt-2 px-4 py-1 rounded text-sm font-medium transition-colors ${
-                      otpLoading || !formData.email.trim()
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
-                  >
-                    {otpLoading ? 'Sending...' : 'Verify Email'}
-                  </button>
+                      {errors.name && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <span>⚠️</span> {errors.name}
+                        </p>
                 )}
               </div>
 
-              <div>
+                    {/* NIC Field */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        National Identity Card (NIC) <span className="text-red-500">*</span>
+                      </label>
                 <input
                   name="nic"
                   type="text"
-                  placeholder="NIC (12 digits or 9 digits + V/X)"
+                        placeholder="Enter your NIC number"
                   value={formData.nic}
                   onChange={handleChange}
-                  className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                    errors.nic ? 'border-red-500 bg-red-50' : 
-                    nicInfo ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                        className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.nic 
+                            ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                            : nicInfo 
+                              ? 'border-green-500 bg-green-50 focus:ring-green-500' 
+                              : 'border-gray-300 bg-white hover:border-gray-400'
                   }`}
                 />
-                {errors.nic && <p className="text-red-500 text-sm mt-1">{errors.nic}</p>}
-                
-                {/* ✅ Enhanced NIC Information Display */}
+                      {errors.nic && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <span>⚠️</span> {errors.nic}
+                        </p>
+                      )}
+                      
+                      {/* Enhanced NIC Information Display */}
                 {showNicInfo && nicInfo && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <FaCheckCircle className="text-green-600" size={16} />
-                      <span className="text-sm font-medium text-green-800">Valid NIC ✓</span>
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <FaCheckCircle className="text-green-600" size={18} />
+                            <span className="text-sm font-semibold text-green-800">Valid NIC Information</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
-                      <div>
-                        <span className="font-medium">Date of Birth:</span>
-                        <br />
-                        <span className="font-semibold">{nicInfo.dateOfBirth}</span>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white/60 p-2 rounded">
+                              <span className="font-medium text-green-700">Date of Birth:</span>
+                              <div className="font-semibold text-green-800">{nicInfo.dateOfBirth}</div>
                       </div>
-                      <div>
-                        <span className="font-medium">Gender:</span>
-                        <br />
-                        <span className="font-semibold">{nicInfo.gender}</span>
+                            <div className="bg-white/60 p-2 rounded">
+                              <span className="font-medium text-green-700">Gender:</span>
+                              <div className="font-semibold text-green-800">{nicInfo.gender}</div>
                       </div>
-                      <div>
-                        <span className="font-medium">Age:</span>
-                        <br />
-                        <span className="font-semibold">{nicInfo.age} years</span>
+                            <div className="bg-white/60 p-2 rounded">
+                              <span className="font-medium text-green-700">Age:</span>
+                              <div className="font-semibold text-green-800">{nicInfo.age} years</div>
                       </div>
-                      <div>
-                        <span className="font-medium">NIC Type:</span>
-                        <br />
-                        <span className="font-semibold">{nicInfo.nicType}</span>
+                            <div className="bg-white/60 p-2 rounded">
+                              <span className="font-medium text-green-700">NIC Type:</span>
+                              <div className="font-semibold text-green-800">{nicInfo.nicType}</div>
                       </div>
                     </div>
                   </div>
                 )}
                 
-                <p className="text-xs text-gray-600 mt-1">
-                  Example: 200012345678 or 901234567V
+                      <p className="text-xs text-gray-600 bg-gray-0 px-3 py-2 rounded-lg">
+                        <span className="font-medium">Format:</span> 200012345678 (new) or 901234567V (old)
                 </p>
               </div>
 
-              <div>
+                    {/* Contact Field */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Contact Number <span className="text-red-500">*</span>
+                      </label>
                 <input
                   name="contact"
                   type="tel"
-                  placeholder="Contact Number (10 digits)"
+                        placeholder="Enter your contact number"
                   value={formData.contact}
                   onChange={handleChange}
-                  className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                    errors.contact ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                        className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          errors.contact 
+                            ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                            : 'border-gray-300 bg-white hover:border-gray-400'
                   }`}
                 />
-                {errors.contact && <p className="text-red-500 text-sm mt-1">{errors.contact}</p>}
-                <p className="text-xs text-gray-600 mt-1">
-                  Example: 0771234567
+                      {errors.contact && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <span>⚠️</span> {errors.contact}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-600 bg-gray-0 px-3 py-2 rounded-lg">
+                        <span className="font-medium">Format:</span> 0771234567 (10 digits)
                 </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="relative">
-                    <input
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className={`w-full border px-4 py-2 pr-10 rounded text-black placeholder-gray-500 ${
-                        errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                      {showPassword ? '🙈' : '👁️'}
-                    </button>
+                             </div>
                   </div>
-                  {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-                </div>
+                )}
 
-                <div>
-                  <div className="relative">
-                    <input
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm Password"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className={`w-full border px-4 py-2 pr-10 rounded text-black placeholder-gray-500 ${
-                        errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                      {showConfirmPassword ? '🙈' : '👁️'}
-                    </button>
+                {/* Step 2: Security Setup */}
+                {currentStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-xl">🔒</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-1">Create Your Password</h3>
+                      <p className="text-gray-600 text-sm">Choose a strong password to secure your account</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Password Field */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Password <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Create a strong password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                              errors.password 
+                                ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                                : 'border-gray-300 bg-white hover:border-gray-400'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                          >
+                            {showPassword ? '🙈' : '👁️'}
+                          </button>
+                        </div>
+                        {errors.password && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <span>⚠️</span> {errors.password}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Confirm Password Field */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Confirm Password <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            name="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm your password"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            className={`w-full px-4 py-3 pr-12 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                              errors.confirmPassword 
+                                ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                                : 'border-gray-300 bg-white hover:border-gray-400'
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                          >
+                            {showConfirmPassword ? '🙈' : '👁️'}
+                          </button>
+                        </div>
+                        {errors.confirmPassword && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <span>⚠️</span> {errors.confirmPassword}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Password Requirements */}
+                    <div className="bg-blue-0 border border-gray-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-2">Password Requirements:</h4>
+                      <ul className="text-xs text-gray-700 space-y-1">
+                        <li>• At least 8 characters long</li>
+                        <li>• One uppercase letter (A-Z)</li>
+                        <li>• One lowercase letter (a-z)</li>
+                        <li>• One number (0-9)</li>
+                        <li>• One special character (@$!%*?&)</li>
+                      </ul>
+                    </div>
                   </div>
-                  {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
-                </div>
-              </div>
-              
-              <p className="text-xs text-gray-600 mt-1">
-                Password must contain: 8+ chars, uppercase, lowercase, number, special character
-              </p>
+                )}
 
-               {/* ✅ Terms and Conditions */}
-               <div className="mt-4">
-                 <div className="flex items-start gap-3">
+                {/* Step 3: Email Verification & Terms */}
+                {currentStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-xl">📧</span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-1">Email Verification & Terms</h3>
+                      <p className="text-gray-600 text-sm">Verify your email address and accept our terms to complete registration</p>
+                    </div>
+
+                    {/* Email Field */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          name="email"
+                          type="email"
+                          placeholder="Enter your email address"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 pr-12 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            errors.email 
+                              ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                              : isEmailVerified 
+                                ? 'border-green-500 bg-green-50 focus:ring-green-500' 
+                                : 'border-gray-300 bg-white hover:border-gray-400'
+                          }`}
+                        />
+                        {isEmailVerified && verifiedEmail.toLowerCase() === formData.email.trim().toLowerCase() && (
+                          <FaCheckCircle className="absolute right-4 top-1/2 transform -translate-y-1/2 text-green-500 text-lg" />
+                        )}
+                      </div>
+                      {errors.email && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <span>⚠️</span> {errors.email}
+                        </p>
+                      )}
+                      {isEmailVerified && verifiedEmail.toLowerCase() === formData.email.trim().toLowerCase() ? (
+                        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 px-3 py-2 rounded-lg">
+                          <FaCheckCircle size={14} />
+                          <span className="font-medium">Email verified successfully</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={sendOTP}
+                          disabled={otpLoading || !formData.email.trim()}
+                          className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            otpLoading || !formData.email.trim()
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                          }`}
+                        >
+                          {otpLoading ? 'Sending OTP...' : 'Verify Email'}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Terms and Conditions */}
+                    <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-start gap-4">
                    <input
                      type="checkbox"
                      id="acceptTerms"
                      checked={acceptedTerms}
                      onChange={(e) => setAcceptedTerms(e.target.checked)}
-                     className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          className="mt-1 w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                    />
                    <div className="text-sm text-gray-700">
                      <label htmlFor="acceptTerms" className="cursor-pointer">
-                       I agree to the{' '}
+                            <span className="font-medium">I agree to the</span>{' '}
                        <button
                          type="button"
                          onClick={() => setShowTermsModal(true)}
-                         className="text-blue-600 hover:text-blue-800 underline font-medium"
+                              className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
                        >
                          Terms and Conditions
                        </button>
-                       {' '}and{' '}
+                            {' '}<span className="font-medium">and</span>{' '}
                        <button
                          type="button"
                          onClick={() => setShowTermsModal(true)}
-                         className="text-blue-600 hover:text-blue-800 underline font-medium"
+                              className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
                        >
                          Privacy Policy
                        </button>
                      </label>
-                     {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms}</p>}
+                          {errors.terms && (
+                            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                              <span>⚠️</span> {errors.terms}
+                            </p>
+                          )}
                    </div>
                  </div>
                </div>
+                  </div>
+                )}
 
+                {/* Navigation Buttons */}
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={prevStep}
+                    disabled={currentStep === 1}
+                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                      currentStep === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    ← Previous
+                  </button>
+
+                  <div className="flex gap-3">
+                    {currentStep < totalSteps ? (
+                      <button
+                        onClick={nextStep}
+                        className="px-8 py-3 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        Next Step →
+                      </button>
+                    ) : (
                <button
                  onClick={handleRegister}
                  disabled={!isEmailVerified || !acceptedTerms}
-                 className={`px-8 py-3 rounded font-bold mt-6 transition-colors ${
+                        className={`px-8 py-3 rounded-lg font-bold transition-all duration-200 transform ${
                    !isEmailVerified || !acceptedTerms
                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                     : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:-translate-y-1'
                  }`}
                >
-                 {!isEmailVerified ? 'Verify Email to Register' : 
-                  !acceptedTerms ? 'Accept Terms to Register' : 'Register'}
+                        {!isEmailVerified ? 'Verify Email First' : 
+                         !acceptedTerms ? 'Accept Terms First' : 'Create Account'}
                </button>
+                    )}
+                  </div>
+                </div>
 
-
-
-              <p className="mt-4 text-sm text-black">
-                Already registered?{' '}
-                <span
+                {/* Login Link */}
+                <div className="mt-6 text-center">
+                  <p className="text-gray-600">
+                    Already have an account?{' '}
+                    <button
                   onClick={() => setShowLoginModal(true)}
-                  className="text-blue-700 hover:underline cursor-pointer font-semibold"
-                >
-                  Login
-                </span>
-              </p>
+                      className="text-blue-600 hover:text-blue-800 font-semibold underline transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Forgot your password?{' '}
+                    <button
+                      onClick={() => setShowForgotPasswordModal(true)}
+                      className="text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
+                    >
+                      Reset Password
+                    </button>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -730,19 +1170,26 @@ const OwnerDetails = () => {
 
       {/* OTP Verification Modal */}
       {showOTPModal && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[100]">
-          <div className="bg-white rounded-xl p-8 shadow-xl w-96 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <FaEnvelope className="text-blue-500 text-2xl mr-2" />
-              <h2 className="text-xl font-bold text-black">Verify Email</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl w-full max-w-md text-center border border-gray-200">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                <FaEnvelope className="text-blue-600 text-2xl" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Verify Email</h2>
+                <p className="text-gray-600 text-sm">Enter the code sent to your email</p>
+              </div>
             </div>
             
-            <p className="text-gray-600 mb-4 text-sm">
-              We sent a 6-digit code to<br />
-              <span className="font-medium">{formData.email}</span>
-            </p>
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <p className="text-gray-600 text-sm">
+                We sent a 6-digit code to
+              </p>
+              <p className="font-semibold text-gray-800 mt-1">{formData.email}</p>
+            </div>
 
-            <div className="mb-4">
+            <div className="mb-6">
               <input
                 type="text"
                 placeholder="Enter 6-digit OTP"
@@ -751,99 +1198,128 @@ const OwnerDetails = () => {
                   setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
                   if (otpError) setOtpError('');
                 }}
-                className={`w-full border px-4 py-3 rounded text-center text-lg font-mono tracking-widest text-black placeholder-gray-500 ${
-                  otpError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                className={`w-full border-2 px-6 py-4 rounded-xl text-center text-2xl font-mono tracking-widest text-gray-800 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                  otpError 
+                    ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                    : 'border-gray-300 bg-white focus:ring-blue-500 focus:border-blue-500'
                 }`}
                 maxLength="6"
               />
-              {otpError && <p className="text-red-500 text-sm mt-1 text-left">{otpError}</p>}
+              {otpError && (
+                <p className="text-red-500 text-sm mt-2 flex items-center justify-center gap-1">
+                  <span>⚠️</span> {otpError}
+                </p>
+              )}
             </div>
 
             <button
               onClick={verifyOTP}
               disabled={otpLoading || otp.length !== 6}
-              className={`w-full py-2 rounded mb-3 font-medium transition-colors ${
+              className={`w-full py-4 rounded-xl mb-4 font-semibold text-lg transition-all duration-200 ${
                 otpLoading || otp.length !== 6
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
               }`}
             >
-              {otpLoading ? 'Verifying...' : 'Verify OTP'}
+              {otpLoading ? 'Verifying...' : 'Verify Code'}
             </button>
 
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 mb-4">
               {resendTimer > 0 ? (
-                <p>Resend OTP in {resendTimer}s</p>
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <p className="text-gray-700">Resend code in <span className="font-semibold text-blue-600">{resendTimer}s</span></p>
+                </div>
               ) : (
                 <button
                   onClick={resendOTP}
-                  className="text-blue-600 hover:underline font-medium"
+                  className="text-blue-600 hover:text-blue-800 font-medium underline transition-colors"
                 >
-                  Resend OTP
+                  Resend Code
                 </button>
               )}
             </div>
 
-            <p
+            <button
               onClick={closeOTPModal}
-              className="mt-4 text-sm text-gray-600 hover:underline cursor-pointer"
+              className="text-gray-500 hover:text-gray-700 text-sm underline transition-colors"
             >
               Cancel
-            </p>
+            </button>
           </div>
         </div>
       )}
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[100]">
-          <div className="bg-white rounded-xl p-8 shadow-xl w-96 text-center">
-            <h2 className="text-xl font-bold mb-4 text-black">Login</h2>
-            <div className="mb-4">
-              <input
-                name="loginName"
-                type="text"
-                placeholder="Enter Name"
-                value={loginName}
-                onChange={handleLoginChange}
-                className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 mb-3 ${
-                  loginError ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-              />
-              <input
-                name="loginPassword"
-                type="password"
-                placeholder="Enter Password"
-                value={loginPassword}
-                onChange={handleLoginChange}
-                className={`w-full border px-4 py-2 rounded text-black placeholder-gray-500 ${
-                  loginError ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-              />
-              {loginError && <p className="text-red-500 text-sm mt-1 text-left">{loginError}</p>}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl w-full max-w-md text-center border border-gray-200">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaUser className="text-green-600 text-2xl" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+              <p className="text-gray-600 text-sm">Sign in to your account</p>
             </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+              <input
+                  name="loginName"
+                type="text"
+                  placeholder="Enter your name"
+                  value={loginName}
+                  onChange={handleLoginChange}
+                  className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                    loginError 
+                      ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                }`}
+              />
+            </div>
+              <div>
+                <input
+                  name="loginPassword"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={loginPassword}
+                  onChange={handleLoginChange}
+                  className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                    loginError 
+                      ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                      : 'border-gray-300 bg-white hover:border-gray-400'
+                  }`}
+                />
+              </div>
+              {loginError && (
+                <p className="text-red-500 text-sm flex items-center justify-center gap-1">
+                  <span>⚠️</span> {loginError}
+                </p>
+              )}
+            </div>
+            
             <button
               onClick={handleLogin}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded mb-3 transition-colors"
+              className="w-full py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 mb-4"
             >
-              Login
+              Sign In
             </button>
-            <p
+            
+            <button
               onClick={() => {
                 setShowLoginModal(false);
                 setLoginError('');
                 setLoginName('');
                 setLoginPassword('');
               }}
-              className="text-sm text-gray-600 hover:underline cursor-pointer"
+              className="text-gray-500 hover:text-gray-700 text-sm underline transition-colors"
             >
               Cancel
-            </p>
+            </button>
           </div>
-        </div>
-      )}
+                 </div>
+       )}
 
-       {/* ✅ Terms and Conditions Modal */}
+      {/* Terms and Conditions Modal */}
        {showTermsModal && (
          <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-[100] p-4">
            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[70vh] overflow-y-auto">
@@ -949,6 +1425,197 @@ const OwnerDetails = () => {
                  </div>
                </div>
              </div>
+                     </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-[100] p-4">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl w-full max-w-md text-center border border-gray-200">
+            <div className="mb-6">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🔑</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                {forgotPasswordStep === 1 && 'Reset Password'}
+                {forgotPasswordStep === 2 && 'Verify Code'}
+                {forgotPasswordStep === 3 && 'Set New Password'}
+              </h2>
+              <p className="text-gray-600 text-sm">
+                {forgotPasswordStep === 1 && 'Enter your email address to receive a reset code'}
+                {forgotPasswordStep === 2 && 'Enter the 6-digit code sent to your email'}
+                {forgotPasswordStep === 3 && 'Create a new password for your account'}
+              </p>
+            </div>
+            
+            {forgotPasswordStep === 1 && (
+              <div className="space-y-4 mb-6">
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => {
+                      setForgotPasswordEmail(e.target.value);
+                      if (forgotPasswordError) setForgotPasswordError('');
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      forgotPasswordError 
+                        ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                        : 'border-gray-300 bg-white hover:border-gray-400'
+                    }`}
+                  />
+                </div>
+                {forgotPasswordError && (
+                  <p className="text-red-500 text-sm flex items-center justify-center gap-1">
+                    <span>⚠️</span> {forgotPasswordError}
+                  </p>
+                )}
+                <button
+                  onClick={sendForgotPasswordOTP}
+                  disabled={forgotPasswordLoading || !forgotPasswordEmail.trim()}
+                  className={`w-full py-3 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                    forgotPasswordLoading || !forgotPasswordEmail.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {forgotPasswordLoading ? 'Sending Code...' : 'Send Reset Code'}
+                </button>
+              </div>
+            )}
+
+            {forgotPasswordStep === 2 && (
+              <div className="space-y-4 mb-6">
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-gray-600 text-sm">
+                    We sent a 6-digit code to
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-1">{forgotPasswordEmail}</p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Check your email and enter the code below
+                  </p>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={forgotPasswordOtp}
+                    onChange={(e) => {
+                      setForgotPasswordOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      if (forgotPasswordError) setForgotPasswordError('');
+                    }}
+                    className={`w-full border-2 px-6 py-4 rounded-xl text-center text-2xl font-mono tracking-widest text-gray-800 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 ${
+                      forgotPasswordError 
+                        ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                        : 'border-gray-300 bg-white focus:ring-orange-500 focus:border-orange-500'
+                    }`}
+                    maxLength="6"
+                  />
+                </div>
+                {forgotPasswordError && (
+                  <p className="text-red-500 text-sm flex items-center justify-center gap-1">
+                    <span>⚠️</span> {forgotPasswordError}
+                  </p>
+                )}
+                <button
+                  onClick={verifyForgotPasswordOTP}
+                  disabled={forgotPasswordLoading || forgotPasswordOtp.length !== 6}
+                  className={`w-full py-3 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                    forgotPasswordLoading || forgotPasswordOtp.length !== 6
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {forgotPasswordLoading ? 'Verifying...' : 'Verify Code'}
+                </button>
+                <div className="text-sm text-gray-600">
+                  {forgotPasswordResendTimer > 0 ? (
+                    <div className="bg-gray-100 rounded-lg p-3">
+                      <p className="text-gray-700">Resend code in <span className="font-semibold text-orange-600">{forgotPasswordResendTimer}s</span></p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={resendForgotPasswordOTP}
+                      className="text-orange-600 hover:text-orange-800 font-medium underline transition-colors"
+                    >
+                      Resend Code
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {forgotPasswordStep === 3 && (
+              <div className="space-y-4 mb-6">
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (forgotPasswordError) setForgotPasswordError('');
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      forgotPasswordError 
+                        ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                        : 'border-gray-300 bg-white hover:border-gray-400'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <input
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => {
+                      setConfirmNewPassword(e.target.value);
+                      if (forgotPasswordError) setForgotPasswordError('');
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                      forgotPasswordError 
+                        ? 'border-red-500 bg-red-50 focus:ring-red-500' 
+                        : 'border-gray-300 bg-white hover:border-gray-400'
+                    }`}
+                  />
+                </div>
+                {forgotPasswordError && (
+                  <p className="text-red-500 text-sm flex items-center justify-center gap-1">
+                    <span>⚠️</span> {forgotPasswordError}
+                  </p>
+                )}
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <h4 className="text-sm font-semibold text-orange-800 mb-1">Password Requirements:</h4>
+                  <ul className="text-xs text-orange-700 space-y-1">
+                    <li>• At least 8 characters long</li>
+                    <li>• One uppercase letter (A-Z)</li>
+                    <li>• One lowercase letter (a-z)</li>
+                    <li>• One number (0-9)</li>
+                    <li>• One special character (@$!%*?&)</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={resetPassword}
+                  disabled={forgotPasswordLoading || !newPassword.trim() || !confirmNewPassword.trim()}
+                  className={`w-full py-3 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                    forgotPasswordLoading || !newPassword.trim() || !confirmNewPassword.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {forgotPasswordLoading ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </div>
+            )}
+            
+            <button
+              onClick={closeForgotPasswordModal}
+              className="text-gray-500 hover:text-gray-700 text-sm underline transition-colors"
+            >
+              Cancel
+            </button>
            </div>
          </div>
        )}

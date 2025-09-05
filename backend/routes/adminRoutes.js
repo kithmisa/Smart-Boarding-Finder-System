@@ -16,7 +16,8 @@ const {
   deleteHouse,
   replyToComment,
   markAllMessagesAsRead,
-  syncEmailReplies
+  syncEmailReplies,
+  getOwnerBankingDetails
 } = require('../controllers/adminController');
 
 // Admin login
@@ -32,6 +33,9 @@ router.get('/users', getAllUsers);
 
 // Get all owners
 router.get('/owners', getAllOwners);
+
+// Get owner banking details
+router.get('/owners/:ownerId/banking', getOwnerBankingDetails);
 
 // Get all comments
 router.get('/comments', getAllComments);
