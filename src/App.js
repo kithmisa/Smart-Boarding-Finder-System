@@ -213,6 +213,8 @@ function App() {
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="contact" element={<Contact />} />
         <Route path="admin-dashboard" element={<AdminDashboard />} /> 
+        <Route path="/boarding/:id/payment" element={<Payment />} />
+
       
       </Route>
       

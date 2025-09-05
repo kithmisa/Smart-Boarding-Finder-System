@@ -280,6 +280,3 @@ SELECT
   COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
 FROM website_ratings;
 
-
-
-

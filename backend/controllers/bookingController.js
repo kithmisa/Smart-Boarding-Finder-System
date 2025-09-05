@@ -75,74 +75,48 @@ const createVisitBooking = async (req, res) => {
 // ============================
 const createStayBooking = async (req, res) => {
   try {
-    const { houseId, checkIn, checkOut, type = 'stay', userId } = req.body;
-
-    console.log('=== CREATE STAY BOOKING ===');
-    console.log('Data:', { houseId, checkIn, checkOut, type, userId });
+    const { houseId, checkIn, checkOut, userId } = req.body;
 
     // Validation
-    if (!houseId || !checkIn || !checkOut) {
-      return res.status(400).json({
-        success: false,
-        message: 'House ID, check-in and check-out dates are required'
-      });
+    if (!houseId || !checkIn || !checkOut || !userId) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Validate dates
+    // Check that check-out is after check-in
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    
     if (checkInDate >= checkOutDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Check-out date must be after check-in date'
-      });
+      return res.status(400).json({ success: false, message: "Check-out date must be after check-in date" });
     }
 
-    // Check if house exists and get details
-    const [houseRows] = await pool.query('SELECT * FROM houses WHERE id = ?', [houseId]);
+    // Get house details
+    const [houseRows] = await pool.query("SELECT * FROM houses WHERE id = ?", [houseId]);
     if (houseRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'House not found'
-      });
+      return res.status(404).json({ success: false, message: "House not found" });
     }
-
     const house = houseRows[0];
 
-    // Check if short-term booking is available
     if (!house.shortTerm || house.pricePerNight <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Short-term booking is not available for this property'
-      });
+      return res.status(400).json({ success: false, message: "Short-term booking not available" });
     }
 
-    // Calculate nights and total price
+    // Calculate nights, total price, advance payment
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
     const totalPrice = nights * house.pricePerNight;
-    const advancePayment = totalPrice / 4; // 25% advance
+    const advancePayment = totalPrice / 4;
 
-    // Skip conflict check for now due to database schema limitations
-    // TODO: Implement proper conflict checking when database supports stay bookings
-
-    // For stay bookings, use check-in date as visit_date (temporary solution)
-    // Insert stay booking using available schema
+    // Insert stay booking
     const insertQuery = `
-      INSERT INTO bookings (
-        house_id, visit_date, status, user_id
-      ) VALUES (?, ?, ?, ?)
+      INSERT INTO stay_bookings (user_id, house_id, check_in, check_out, total_price, advance_payment)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
-
     const [result] = await pool.query(insertQuery, [
-      houseId, checkIn, 'pending', userId || null
+      userId, houseId, checkIn, checkOut, totalPrice, advancePayment
     ]);
 
-    console.log('✅ Stay booking created with ID:', result.insertId);
-
-    res.json({
+    res.status(201).json({
       success: true,
-      message: 'Stay booking request created successfully',
+      message: "Stay booking created successfully",
       booking: {
         id: result.insertId,
         houseId,
@@ -151,24 +125,20 @@ const createStayBooking = async (req, res) => {
         nights,
         totalPrice,
         advancePayment,
-        status: 'pending',
+        status: "pending",
         house: {
           title: house.title,
-          address: house.address,
-          pricePerNight: house.pricePerNight
+          address: house.address
         }
       }
     });
 
   } catch (error) {
-    console.error('❌ Error creating stay booking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create stay booking',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error("❌ Error creating stay booking:", error);
+    res.status(500).json({ success: false, message: "Failed to create stay booking" });
   }
 };
+
 
 // ============================
 // @desc Get booking by ID
