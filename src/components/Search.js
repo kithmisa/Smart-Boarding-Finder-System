@@ -21,7 +21,10 @@ function Search() {
     { icon: "📍", title: "Prime Locations", desc: "Properties located near University of Ruhuna with easy access to campus and amenities." },
     { icon: "📞", title: "24/7 Support", desc: "Our support team is always available to help you with any queries or concerns." },
     { icon: "⚡", title: "Quick Booking", desc: "Fast and easy booking process to secure your accommodation in minutes." },
-    { icon: "🛡️", title: "Safe & Secure", desc: "All properties meet safety standards with secure payment methods and legal agreements." }
+    { icon: "🛡️", title: "Safe & Secure", desc: "All properties meet safety standards with secure payment methods and legal agreements." },
+    { icon: "🌐", title: "User-Friendly Platform", desc: "Simple and intuitive interface designed to make your search and booking experience seamless." },
+    { icon: "⭐", title: "Trusted Reviews", desc: "Read genuine reviews from other students to make informed decisions with confidence." }
+
   ];
   
   // Handle input changes
@@ -146,7 +149,7 @@ function Search() {
       </main>
 
       <section className="features-section">
-        <h2>Why Choose Smart Boarding Finder?</h2>
+        <h2>Discover What Makes Smart Boarding Finder Unique</h2>
         <div className="features-list">
           {features.map((feature, index) => (
             <div key={index} className="feature-item">
