@@ -146,11 +146,11 @@ function App() {
      };
    }, [isAuthenticated]);
 
-   // Wrapper that triggers auth flow in an effect (avoids render loops)
+   
    const RequireAuth = ({ children }) => {
      const location = useLocation();
      
-     // Check if user has authentication tokens in localStorage
+     
      const hasAuthToken = !!localStorage.getItem('auth_token');
      const hasAuthedFlag = localStorage.getItem('has_authed') === '1';
      
@@ -161,7 +161,7 @@ function App() {
        hasAuthedFlag
      });
      
-     // If we have tokens but state is not set, restore authentication state
+     
      useEffect(() => {
        if (hasAuthToken && hasAuthedFlag && !isAuthenticated) {
          console.log('🔄 Restoring authentication state from localStorage');

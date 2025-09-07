@@ -6,6 +6,56 @@ const PAYHERE_CURRENCY = 'LKR';
 
 
 // ============================
+// @desc Create listing payment record (for owner listing fees)
+// @route POST /api/payments/listing/create
+// ============================
+const createListingPaymentRecord = async (req, res) => {
+  try {
+    const {
+      houseId,
+      ownerId,
+      amount,
+      paymentMethod,
+      transactionId,
+      notes
+    } = req.body;
+
+    if (!houseId || !ownerId || !amount || !paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    const orderId = `LIST_${houseId}_${Date.now()}`;
+
+    await pool.query(`
+      INSERT INTO payments (
+        house_id, owner_id, order_id, amount, currency,
+        status, payment_method, transaction_id, notes, type,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    `, [
+      houseId, ownerId, orderId, amount, PAYHERE_CURRENCY,
+      'completed', paymentMethod, transactionId || null, notes || null, 'listing_fee'
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Listing payment recorded',
+      orderId
+    });
+  } catch (error) {
+    console.error('❌ Error creating listing payment record:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create listing payment record',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// ============================
 // @desc Get payment status
 // @route GET /api/payments/:paymentId/status
 // ============================
@@ -166,5 +216,6 @@ const createPaymentRecord = async (req, res) => {
 module.exports = {
   getPaymentStatus,
   getPaymentsByBooking,
-  createPaymentRecord
+  createPaymentRecord,
+  createListingPaymentRecord
 };

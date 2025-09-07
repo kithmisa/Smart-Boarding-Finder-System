@@ -11,6 +11,9 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
   const bookingIdParam = searchParams.get('booking_id');
+  const isOwner = searchParams.get('owner') === '1';
+  const ownerAmount = searchParams.get('amount');
+  const ownerHouse = searchParams.get('house');
   const bookingId = bookingIdParam || (typeof window !== 'undefined' ? localStorage.getItem('last_paid_booking_id') : null);
 
   useEffect(() => {
@@ -18,9 +21,11 @@ const PaymentSuccess = () => {
     const timer = setTimeout(() => {
       setLoading(false);
       setPaymentDetails({
-        bookingId: bookingId || 'N/A',
-        amount: 'Rs. 0',
-        status: 'Success'
+        bookingId: isOwner ? 'Owner Listing Fee' : (bookingId || 'N/A'),
+        amount: isOwner ? `Rs. ${ownerAmount || '0'}` : 'Rs. 0',
+        status: 'Success',
+        isOwner,
+        ownerHouse
       });
     }, 2000);
 
@@ -28,6 +33,11 @@ const PaymentSuccess = () => {
   }, [bookingId]);
 
   const handleBackToProfile = () => {
+    const isOwner = searchParams.get('owner') === '1';
+    if (isOwner) {
+      navigate('/register/house');
+      return;
+    }
     const userId = localStorage.getItem('user_id');
     if (userId) {
       navigate(`/profile/${userId}`);
@@ -81,12 +91,22 @@ const PaymentSuccess = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Details</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Booking ID:</span>
+                <span className="text-gray-600">{paymentDetails?.isOwner ? 'Payment For:' : 'Booking ID:'}</span>
                 <span className="font-semibold text-blue-700">{paymentDetails?.bookingId || bookingId || 'N/A'}</span>
               </div>
+              {paymentDetails?.isOwner && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Property:</span>
+                  <span className="font-semibold text-blue-700">{paymentDetails?.ownerHouse || 'Property'}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Status:</span>
                 <span className="text-green-600 font-medium">Paid</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Amount:</span>
+                <span className="font-semibold text-blue-700">{paymentDetails?.amount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Payment Method:</span>

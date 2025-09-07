@@ -6,7 +6,7 @@ import {
   FaUserFriends, FaTimes, FaEdit, FaTrash, FaCalendarAlt, 
   FaEye, FaCheck, FaClock, FaBan, FaHourglass, FaCheckCircle, 
   FaExclamationTriangle, FaInfoCircle, FaBell, FaUserEdit,
-  FaUniversity, FaPlus, FaCog, FaLock, FaDownload
+  FaUniversity, FaPlus, FaCog, FaLock, FaDownload,FaCreditCard
 } from 'react-icons/fa';
 import Navbar from './Navbar';
 import BankDetailsModal from './BankDetailsModal'; 
@@ -305,6 +305,7 @@ const BookingsTab = ({
 const HouseDetails = () => {
   const { state } = useLocation();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search || '');
   const navigate = useNavigate();
   
   // ✅ Comprehensive debugging
@@ -315,10 +316,32 @@ const HouseDetails = () => {
   console.log("state?.ownerData?.id:", state?.ownerData?.id);
   
   // ✅ Try multiple ways to get owner_id and convert to number
+  let ownerInfoId = null;
+  try {
+    const ownerInfoRaw = localStorage.getItem('owner_info');
+    if (ownerInfoRaw) {
+      const parsed = JSON.parse(ownerInfoRaw);
+      ownerInfoId = parsed?.id || parsed?.owner_id || parsed?.ownerId || null;
+    }
+  } catch {}
+
+  // ✅ Try sessionStorage too
+  let sessionOwnerId = null;
+  try {
+    sessionOwnerId = sessionStorage.getItem('owner_id') || null;
+  } catch {}
+
+  // ✅ Try query param ?owner_id=123
+  const ownerIdFromQuery = searchParams.get('owner_id');
+
   const rawOwnerId = state?.owner_id || 
                      state?.ownerData?.id || 
                      state?.ownerData?.owner_id ||
-                     localStorage.getItem('owner_id');
+                     ownerIdFromQuery ||
+                     localStorage.getItem('owner_id') ||
+                     sessionOwnerId ||
+                     localStorage.getItem('user_owner_id') ||
+                     ownerInfoId;
 
   // ✅ Convert to number and validate
   let owner_id = null;
@@ -326,12 +349,16 @@ const HouseDetails = () => {
   console.log('   rawOwnerId:', rawOwnerId);
   console.log('   state:', state);
   console.log('   localStorage owner_id:', localStorage.getItem('owner_id'));
+  console.log('   sessionStorage owner_id:', (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('owner_id') : null);
+  console.log('   owner_info id fallback:', ownerInfoId);
+  console.log('   owner_id from query:', ownerIdFromQuery);
   
   if (rawOwnerId && rawOwnerId !== '' && rawOwnerId !== 'undefined' && rawOwnerId !== 'null') {
     const parsedId = parseInt(rawOwnerId);
     if (!isNaN(parsedId) && parsedId > 0) {
       owner_id = parsedId;
       console.log('✅ Final owner_id:', owner_id);
+      try { localStorage.setItem('owner_id', String(owner_id)); } catch {}
     } else {
       console.log('❌ Invalid parsed ID:', parsedId);
     }
@@ -729,6 +756,32 @@ const HouseDetails = () => {
       console.log('✅ Property submission success:', result);
       
       alert('✅ Property submitted successfully!\n\n🔍 Your property is now under review by our admin team.\n📧 You will be notified once it\'s approved and live on the platform.');
+
+      // ✅ After successful submission, navigate to payment for 10% listing fee
+      try {
+        const monthlyPriceNum = parseFloat(formData.price) || 0;
+        if (monthlyPriceNum > 0) {
+          const ownerPayment = {
+            type: 'owner_listing_fee',
+            house_id: result.houseId,
+            title: formData.title,
+            address: formData.address,
+            monthly_price: monthlyPriceNum,
+            fee_percentage: 0.10,
+            total_payment: Math.round(monthlyPriceNum * 0.10 * 100) / 100
+          };
+          try {
+            localStorage.setItem('ownerPayment', JSON.stringify(ownerPayment));
+            const currentOwnerId = formData.owner_id || owner_id;
+            if (currentOwnerId) {
+              localStorage.setItem('owner_id', String(currentOwnerId));
+            }
+          } catch {}
+          navigate('/register/house/payment', { state: { ownerPayment } });
+        }
+      } catch (e) {
+        console.warn('Owner payment setup failed:', e);
+      }
       
       // ✅ Reset form and refresh listings
       setFormData({
@@ -2242,6 +2295,20 @@ const HouseDetails = () => {
                             }`}>
                               {property.availabilityStatus === 'available' ? 'Available' : 'Unavailable'}
                             </span>
+
+                            {/* Owner Payment Status Badge */}
+                            {(() => {
+                              try {
+                                const paid = localStorage.getItem(`owner_fee_paid_${property.id}`) === 'true';
+                                return (
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded ${paid ? 'bg-blue-600 text-white' : 'bg-yellow-500 text-white'}`}>
+                                    {paid ? 'Listing Fee Paid' : 'Listing Fee Pending'}
+                                  </span>
+                                );
+                              } catch {
+                                return null;
+                              }
+                            })()}
                           </div>
 
                           <div className="absolute top-2 right-2">
@@ -2321,6 +2388,37 @@ const HouseDetails = () => {
                             >
                               <FaTrash /> Delete
                             </button>
+
+                            {/* Pay Listing Fee Button - Show when pending */}
+                            {(() => {
+                              try {
+                                const paid = localStorage.getItem(`owner_fee_paid_${property.id}`) === 'true';
+                                if (!paid) {
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        const monthlyPriceNum = parseFloat(property.price) || 0;
+                                        const ownerPayment = {
+                                          type: 'owner_listing_fee',
+                                          house_id: property.id,
+                                          title: property.title,
+                                          address: property.address,
+                                          monthly_price: monthlyPriceNum,
+                                          fee_percentage: 0.10,
+                                          total_payment: Math.round(monthlyPriceNum * 0.10 * 100) / 100
+                                        };
+                                        try { localStorage.setItem('ownerPayment', JSON.stringify(ownerPayment)); } catch {}
+                                        navigate('/register/house/payment', { state: { ownerPayment } });
+                                      }}
+                                      className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm font-semibold flex items-center justify-center gap-1"
+                                    >
+                                      <FaCreditCard /> Pay Listing Fee
+                                    </button>
+                                  );
+                                }
+                              } catch {}
+                              return null;
+                            })()}
                           </div>
 
                           {/* Availability Management - Only for approved properties */}

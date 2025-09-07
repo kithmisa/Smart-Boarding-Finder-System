@@ -2085,6 +2085,7 @@ const AdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">payment_status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price(lkr)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Short Term</th>
@@ -2098,6 +2099,11 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 text-sm">{house.id}</td>
                     <td className="px-6 py-4 text-sm font-medium">{house.title}</td>
                     <td className="px-6 py-4 text-sm">{house.owner_name || house.owner_id}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${house.listing_fee_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {house.listing_fee_paid ? 'Listing Fee Paid' : 'Listing Fee Pending'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-1">
                         <MapPin size={12} />
@@ -2195,6 +2201,11 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 text-sm font-medium">{house.title}</td>
                     <td className="px-6 py-4 text-sm">{house.owner_name || house.owner_id}</td>
                     <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${house.listing_fee_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {house.listing_fee_paid ? 'Listing Fee Paid' : 'Listing Fee Pending'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-1">
                         <MapPin size={12} />
                         {house.location}
@@ -2280,6 +2291,11 @@ const AdminDashboard = () => {
                       <td className="px-6 py-4 text-sm">{house.id}</td>
                       <td className="px-6 py-4 text-sm font-medium">{house.title}</td>
                       <td className="px-6 py-4 text-sm">{house.owner_name || house.owner_id}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${house.listing_fee_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {house.listing_fee_paid ? 'Listing Fee Paid' : 'Listing Fee Pending'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-1">
                           <MapPin size={12} />

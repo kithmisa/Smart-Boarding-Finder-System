@@ -661,9 +661,14 @@ const getAllComments = async (req, res) => {
 // Get all boarding houses
 const getAllHouses = async (req, res) => {
   try {
-    
     const [houses] = await db.query(`
-      SELECT h.*, o.name as owner_name 
+      SELECT 
+        h.*, 
+        o.name as owner_name,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM payments p 
+          WHERE p.house_id = h.id AND p.type = 'listing_fee' AND p.status = 'completed'
+        ) THEN 1 ELSE 0 END AS listing_fee_paid
       FROM houses h 
       LEFT JOIN owner o ON h.owner_id = o.id 
       ORDER BY h.created_at DESC

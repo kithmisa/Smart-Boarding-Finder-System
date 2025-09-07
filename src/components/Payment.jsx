@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import bgHero from '../assets/image.png';
@@ -7,7 +7,9 @@ import { FaCcVisa, FaCcMastercard } from 'react-icons/fa';
 
 const Payment = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [ownerPayment, setOwnerPayment] = useState(null);
   const [isPaying, setIsPaying] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -18,21 +20,38 @@ const Payment = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
-  // Get booking data from localStorage on component mount
+  // Get booking or owner payment data on component mount
   useEffect(() => {
-    const bookingData = localStorage.getItem('selectedBooking');
-    if (bookingData) {
-      setSelectedBooking(JSON.parse(bookingData));
-    } else {
-      // If no booking data, redirect back to profile
-      const userId = localStorage.getItem('user_id');
-      if (userId) {
-        navigate(`/profile/${userId}`);
-      } else {
-        navigate('/');
+    try {
+      const stateOwnerPayment = location?.state?.ownerPayment;
+      let localOwnerPayment = null;
+      try {
+        const stored = localStorage.getItem('ownerPayment');
+        if (stored) localOwnerPayment = JSON.parse(stored);
+      } catch {}
+
+      if (stateOwnerPayment || localOwnerPayment) {
+        setOwnerPayment(stateOwnerPayment || localOwnerPayment);
       }
+
+      const bookingData = localStorage.getItem('selectedBooking');
+      if (bookingData && !(stateOwnerPayment || localOwnerPayment)) {
+        setSelectedBooking(JSON.parse(bookingData));
+      }
+
+      if (!bookingData && !(stateOwnerPayment || localOwnerPayment)) {
+        const userId = localStorage.getItem('user_id');
+        if (userId) {
+          navigate(`/profile/${userId}`);
+        } else {
+          navigate('/');
+        }
+      }
+    } catch {
+      // On any error, fallback to home
+      navigate('/');
     }
-  }, [navigate]);
+  }, [navigate, location]);
 
   // Allow only numeric input, limit to 16 digits, format as groups of 4
   const handleCardNumberChange = (e) => {
@@ -64,37 +83,87 @@ const Payment = () => {
     if (input.length <= 3) setCvv(input);
   };
 
-  // Handle simple payment: mark booking as paid via backend
+  // Handle simple payment
   const handleSimplePay = async () => {
-    if (!selectedBooking) return;
-    try {
-      setIsPaying(true);
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/payment`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          payment_status: 'paid',
-          payment_method: 'manual'
-        })
-      });
+    // Owner listing fee flow (no booking backend call)
+    if (ownerPayment) {
+      try {
+        setIsPaying(true);
+        // Record payment in backend payments table
+        try {
+          await fetch('http://localhost:5000/api/payments/listing/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              houseId: ownerPayment.house_id,
+              ownerId: Number(localStorage.getItem('owner_id')) || undefined,
+              amount: ownerPayment.total_payment,
+              paymentMethod: 'manual',
+              transactionId: `MANUAL_${Date.now()}`,
+              notes: 'Owner listing fee'
+            })
+          });
+        } catch (e) {
+          console.warn('Listing payment record call failed (continuing):', e);
+        }
 
-      if (response.ok) {
-        // Store booking id for success page and navigate with query
-        try { localStorage.setItem('last_paid_booking_id', String(selectedBooking.id)); } catch {}
-        navigate(`/payment/success?booking_id=${encodeURIComponent(selectedBooking.id)}`);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Payment failed');
+        try {
+          if (ownerPayment?.house_id) {
+            localStorage.setItem(`owner_fee_paid_${ownerPayment.house_id}`, 'true');
+          }
+          localStorage.removeItem('ownerPayment');
+        } catch {}
+        setIsPaying(false);
+        alert('Payment successful! Your listing fee has been received.');
+        const params = new URLSearchParams({
+          owner: '1',
+          amount: String(ownerPayment.total_payment || 0),
+          house: String(ownerPayment.title || 'Property')
+        });
+        navigate(`/payment/success?${params.toString()}`);
+      } catch (error) {
+        console.error('Error completing owner payment:', error);
+        alert('Payment failed. Please try again.');
+        setIsPaying(false);
       }
-    } catch (error) {
-      console.error('Error completing payment:', error);
-      alert('Payment failed. Please try again.');
-    } finally {
-      setIsPaying(false);
+      return;
+    }
+
+    // Booking payment flow
+    if (selectedBooking) {
+      try {
+        setIsPaying(true);
+        const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/payment`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            payment_status: 'paid',
+            payment_method: 'manual'
+          })
+        });
+
+        if (response.ok) {
+          // Store booking id for success page and navigate with query
+          try { localStorage.setItem('last_paid_booking_id', String(selectedBooking.id)); } catch {}
+          navigate(`/payment/success?booking_id=${encodeURIComponent(selectedBooking.id)}`);
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Payment failed');
+        }
+      } catch (error) {
+        console.error('Error completing payment:', error);
+        alert('Payment failed. Please try again.');
+      } finally {
+        setIsPaying(false);
+      }
     }
   };
+
+  const amountToPay = ownerPayment
+    ? (ownerPayment.total_payment || 0)
+    : (selectedBooking?.total_payment || 0);
 
   return (
     <>
@@ -116,6 +185,10 @@ const Payment = () => {
           <div className="mb-6">
             <button 
               onClick={() => {
+                if (ownerPayment) {
+                  navigate('/register/house');
+                  return;
+                }
                 const userId = localStorage.getItem('user_id');
                 if (userId) {
                   navigate(`/profile/${userId}`);
@@ -131,8 +204,34 @@ const Payment = () => {
               Back to Profile
             </button>
           </div>
+          {/* Owner Listing Fee Summary */}
+          {ownerPayment && (
+            <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Owner Listing Fee</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium text-gray-700">{ownerPayment.title || 'New Property'}</h3>
+                  <p className="text-sm text-gray-600">{ownerPayment.address || ''}</p>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">
+                      <strong>Monthly Price:</strong> Rs. {ownerPayment.monthly_price}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-600">
+                      <span>Listing Fee (10%): </span>
+                      <span className="font-semibold text-lg text-orange-600">Rs. {ownerPayment.total_payment}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Booking Summary */}
-          {selectedBooking && (
+          {selectedBooking && !ownerPayment && (
             <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Booking Summary</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -283,7 +382,9 @@ const Payment = () => {
           {/* Simple Payment Action */}
           <div className="bg-white rounded-lg p-6 border border-gray-200">
             <p className="text-sm text-gray-600">
-              Click the button below to confirm payment. This will mark your booking as paid.
+              {ownerPayment
+                ? 'Click the button below to pay your listing fee and complete property submission.'
+                : 'Click the button below to confirm payment. This will mark your booking as paid.'}
             </p>
           </div>
 
@@ -291,10 +392,10 @@ const Payment = () => {
           <div className="text-center mt-8">
             <button
               onClick={handleSimplePay}
-              disabled={isPaying || !selectedBooking}
+              disabled={isPaying || (!selectedBooking && !ownerPayment)}
               className={`bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-full text-lg font-semibold transition-colors duration-200 ${isPaying ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isPaying ? 'PROCESSING...' : `PAY Rs. ${selectedBooking?.total_payment || '0'}`}
+              {isPaying ? 'PROCESSING...' : `PAY Rs. ${amountToPay}`}
             </button>
             {/* Prevent HTTP autofill warning only for card fields, allow others */}
             <div style={{position:'absolute',left:'-9999px',height:0,overflow:'hidden'}} aria-hidden="true">

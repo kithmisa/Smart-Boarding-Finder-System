@@ -436,6 +436,14 @@ const OwnerDetails = () => {
       setVerifiedEmail('');
      
       console.log('Server response:', data);
+      try {
+        const newOwnerId = data.owner_id || data.id || data.ownerId;
+        if (newOwnerId) {
+          localStorage.setItem('owner_id', String(newOwnerId));
+        }
+        const enrichedOwnerInfo = { ...cleanedData, id: newOwnerId, owner_id: newOwnerId };
+        localStorage.setItem('owner_info', JSON.stringify(enrichedOwnerInfo));
+      } catch {}
       navigate('/register/house', { 
         state: { 
           ownerData: cleanedData,
@@ -476,6 +484,13 @@ const OwnerDetails = () => {
       setLoginPassword('');
 
       console.log('Login response:', data);
+      try {
+        const existingOwnerId = data.owner?.id || data.id || data.owner_id;
+        if (existingOwnerId) {
+          localStorage.setItem('owner_id', String(existingOwnerId));
+        }
+        localStorage.setItem('owner_info', JSON.stringify(data.owner || data));
+      } catch {}
 
       navigate('/register/house', { 
         state: { 
