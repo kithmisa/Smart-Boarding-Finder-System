@@ -7,6 +7,7 @@ const {
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getAllStayBookings,
   getHouseDetails,
   getAllVisitRequests,
   sendEmail,
@@ -48,6 +49,9 @@ router.get('/houses', getAllHouses);
 
 // Get all visit requests
 router.get('/visit-requests', getAllVisitRequests);
+
+// Get all short-term stay bookings
+router.get('/stay-bookings', getAllStayBookings);
 
 // Send email
 router.post('/send-email', sendEmail);

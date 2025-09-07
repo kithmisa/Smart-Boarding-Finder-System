@@ -1036,6 +1036,46 @@ const getAllVisitRequests = async (req, res) => {
   }
 };
 
+// Get all short-term stay bookings for admin
+const getAllStayBookings = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        b.id,
+        b.house_id,
+        h.title as house_title,
+        h.address as house_address,
+        b.user_id,
+        u.username as user_name,
+        u.email as user_email,
+        b.owner_id,
+        o.name as owner_name,
+        b.check_in_date,
+        b.check_out_date,
+        b.check_in_time,
+        b.check_out_time,
+        b.total_amount,
+        b.advance_payment,
+        b.service_charge,
+        b.total_payment,
+        b.status,
+        b.payment_status,
+        b.created_at,
+        b.updated_at
+      FROM booking_stay b
+      JOIN houses h ON b.house_id = h.id
+      JOIN users u ON b.user_id = u.id
+      JOIN owner o ON b.owner_id = o.id
+      ORDER BY b.created_at DESC
+    `);
+
+    res.json({ success: true, bookings: rows });
+  } catch (error) {
+    console.error('Error fetching stay bookings:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch stay bookings' });
+  }
+};
+
 // Send email from admin
 const sendEmail = async (req, res) => {
   try {
@@ -1166,6 +1206,7 @@ module.exports = {
   getAllOwners,
   getAllComments,
   getAllHouses,
+  getAllStayBookings,
   getHouseDetails,
   getHouseWaitingList,
   getAllVisitRequests,

@@ -231,6 +231,7 @@ const AdminDashboard = () => {
   const [comments, setComments] = useState([]);
   const [boardingHouses, setBoardingHouses] = useState([]);
   const [visitRequests, setVisitRequests] = useState([]);
+  const [stayBookings, setStayBookings] = useState([]);
   const [websiteRatings, setWebsiteRatings] = useState([]);
   const [ratingStats, setRatingStats] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -407,6 +408,9 @@ const AdminDashboard = () => {
         case 'visitRequests':
           endpoint = '/api/admin/visit-requests';
           break;
+        case 'stayBookings':
+          endpoint = '/api/admin/stay-bookings';
+          break;
         case 'comments':
           endpoint = '/api/admin/comments';
           break;
@@ -441,6 +445,9 @@ const AdminDashboard = () => {
             break;
           case 'visitRequests':
             setVisitRequests(data.visitRequests || []);
+            break;
+          case 'stayBookings':
+            setStayBookings(data.bookings || []);
             break;
           case 'comments':
             setComments(data.comments || []);
@@ -701,6 +708,7 @@ const AdminDashboard = () => {
     { id: 'owners', label: 'Owner Management', icon: User },
     { id: 'houses', label: 'House Management', icon: Home },
     { id: 'visitRequests', label: 'Visit Requests', icon: CalendarCheck },
+    { id: 'stayBookings', label: 'Short-Term Bookings', icon: Calendar },
    /* { id: 'boarding', label: 'Boarding Houses', icon: Building },*/
     { id: 'comments', label: 'Comments & Replies', icon: MessageCircle },
     { id: 'website-ratings', label: 'Website Ratings', icon: Star },
@@ -2600,6 +2608,89 @@ const AdminDashboard = () => {
     );
   };
 
+  const renderStayBookings = () => {
+    const filtered = stayBookings.filter(b => {
+      if (!searchTerm) return true;
+      const t = searchTerm.toLowerCase();
+      return (
+        b.id?.toString().includes(t) ||
+        (b.house_title || '').toLowerCase().includes(t) ||
+        (b.user_name || '').toLowerCase().includes(t) ||
+        (b.owner_name || '').toLowerCase().includes(t)
+      );
+    });
+
+    return (
+      <div className="space-y-6">
+        <div className={`bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-6`}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Short-Term Bookings</h3>
+            <div className="text-sm text-gray-600">
+              {searchTerm ? `Found ${filtered.length} booking(s)` : `Total: ${stayBookings.length} bookings`}
+            </div>
+          </div>
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Property</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-in</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-out</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filtered.map(b => (
+                  <tr key={b.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm">{b.id}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="font-medium">{b.house_title}</div>
+                      <div className="text-xs text-gray-500">{b.house_address}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">{b.user_name} <span className="text-gray-500 text-xs">({b.user_email})</span></td>
+                    <td className="px-6 py-4 text-sm">{b.owner_name}</td>
+                    <td className="px-6 py-4 text-sm">{new Date(b.check_in_date).toLocaleDateString()} {b.check_in_time || ''}</td>
+                    <td className="px-6 py-4 text-sm">{new Date(b.check_out_date).toLocaleDateString()} {b.check_out_time || ''}</td>
+                    <td className="px-6 py-4 text-sm">Rs. {b.total_payment}</td>
+                    <td className="px-6 py-4 text-sm">Rs. {b.service_charge}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        b.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                        b.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        b.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {b.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        b.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                        b.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {b.payment_status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-8 text-gray-500">No bookings found</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderComments = () => {
     return (
       <div className="space-y-6">
@@ -3261,6 +3352,8 @@ const AdminDashboard = () => {
         return renderHouses();
       case 'visitRequests':
         return renderVisitRequests();
+      case 'stayBookings':
+        return renderStayBookings();
       case 'boarding':
         return renderBoardingHouses();
       case 'comments':
