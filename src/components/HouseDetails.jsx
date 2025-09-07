@@ -12,6 +12,296 @@ import Navbar from './Navbar';
 import BankDetailsModal from './BankDetailsModal'; 
 import bgHero from '../assets/image.png';
 
+// BookingsTab Component
+const BookingsTab = ({ 
+  ownerId, 
+  showBookingConfirmModal, 
+  setShowBookingConfirmModal, 
+  showBookingRejectModal, 
+  setShowBookingRejectModal, 
+  selectedBooking, 
+  setSelectedBooking, 
+  confirmData, 
+  setConfirmData, 
+  rejectReason, 
+  setRejectReason 
+}) => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('BookingsTab state updated:', {
+      showBookingConfirmModal,
+      showBookingRejectModal,
+      selectedBooking: selectedBooking?.id
+    });
+  }, [showBookingConfirmModal, showBookingRejectModal, selectedBooking]);
+
+  useEffect(() => {
+    if (ownerId) {
+      fetchBookings();
+    }
+  }, [ownerId]);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/api/bookings/stay/owner/${ownerId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setBookings(data.bookings);
+      } else {
+        console.error('Failed to fetch bookings:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Booking handlers will be in the main component
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'cancelled': return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return <FaHourglass className="text-yellow-600" />;
+      case 'confirmed': return <FaCheckCircle className="text-green-600" />;
+      case 'rejected': return <FaBan className="text-red-600" />;
+      case 'cancelled': return <FaTimes className="text-gray-600" />;
+      case 'completed': return <FaCheck className="text-blue-600" />;
+      default: return <FaInfoCircle className="text-gray-600" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (bookings.length === 0) {
+    return (
+      <div className="text-center py-12 bg-white/80 rounded-lg">
+        <FaClock className="mx-auto text-6xl text-gray-300 mb-4" />
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">No Bookings Yet</h3>
+        <p className="text-gray-500">Short term bookings will appear here when customers book your properties.</p>
+      </div>
+    );
+  }
+
+  // Apply status/payment filters
+  const filteredBookings = bookings.filter((b) => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'paid') return (b.payment_status === 'paid');
+    return b.status === statusFilter; // 'confirmed' | 'pending' | 'rejected'
+  });
+
+  const filterButtonClass = (value) =>
+    `px-3 py-1 rounded-full text-sm border ${
+      statusFilter === value
+        ? 'bg-orange-600 text-white border-orange-600'
+        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+    }`;
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <span className="text-sm text-gray-600 mr-2">Filter:</span>
+        <button onClick={() => setStatusFilter('all')} className={filterButtonClass('all')}>All</button>
+        <button onClick={() => setStatusFilter('paid')} className={filterButtonClass('paid')}>Paid</button>
+        <button onClick={() => setStatusFilter('confirmed')} className={filterButtonClass('confirmed')}>Confirmed</button>
+        <button onClick={() => setStatusFilter('pending')} className={filterButtonClass('pending')}>Pending</button>
+        <button onClick={() => setStatusFilter('rejected')} className={filterButtonClass('rejected')}>Rejected</button>
+      </div>
+
+      {filteredBookings.length === 0 && (
+        <div className="bg-white rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-500">
+          No bookings match the selected filter.
+        </div>
+      )}
+
+      {filteredBookings.map((booking) => (
+        <div key={booking.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{booking.house_title}</h3>
+              <p className="text-gray-600 text-sm">{booking.house_address}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Booking ID</span>
+                <span className="px-2 py-1 rounded-md text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-100">#{booking.id}</span>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${getStatusColor(booking.status)}`}>
+                {getStatusIcon(booking.status)}
+                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Dates</h4>
+              <p className="text-gray-700"><span className="text-gray-500">Check-in:</span> {new Date(booking.check_in_date).toLocaleDateString()}</p>
+              <p className="text-gray-700"><span className="text-gray-500">Check-out:</span> {new Date(booking.check_out_date).toLocaleDateString()}</p>
+              {booking.check_in_time && (
+                <p className="text-gray-700"><span className="text-gray-500">Check-in Time:</span> {booking.check_in_time}</p>
+              )}
+              {booking.check_out_time && (
+                <p className="text-gray-700"><span className="text-gray-500">Check-out Time:</span> {booking.check_out_time}</p>
+              )}
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Guest</h4>
+              <p className="text-gray-700"><span className="text-gray-500">Name:</span> {booking.user_name}</p>
+              <p className="text-gray-700"><span className="text-gray-500">Email:</span> {booking.user_email}</p>
+              <p className="text-gray-700"><span className="text-gray-500">Contact:</span> {booking.user_contact}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Payment Snapshot</h4>
+              <p className="text-gray-700"><span className="text-gray-500">Status:</span> {booking.payment_status === 'paid' ? 'Paid' : (booking.payment_status === 'pending' ? 'Pending' : 'Refunded')}</p>
+              <p className="text-gray-700"><span className="text-gray-500">Total:</span> Rs. {booking.total_payment}</p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <h4 className="font-semibold text-gray-700 mb-2">Payment Information</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-gray-600">Total Amount</p>
+                <p className="font-semibold text-gray-800">Rs. {booking.total_amount}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Advance Payment</p>
+                <p className="font-semibold text-gray-800">Rs. {booking.advance_payment}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Service Charge</p>
+                <p className="font-semibold text-gray-800">Rs. {booking.service_charge}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Total Payment</p>
+                <p className="font-semibold text-orange-600">Rs. {booking.total_payment}</p>
+              </div>
+            </div>
+            
+            {/* Payment Status */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Payment Status:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    booking.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                    booking.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {booking.payment_status === 'paid' ? '✅ Paid' :
+                     booking.payment_status === 'pending' ? '⏳ Pending Payment' :
+                     '❌ Refunded'}
+                  </span>
+                </div>
+                
+                {booking.payment_status === 'paid' && (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <FaCheckCircle size={14} />
+                    <span className="text-sm font-medium">Payment Completed</span>
+                  </div>
+                )}
+                
+                {booking.status === 'confirmed' && booking.payment_status === 'pending' && (
+                  <div className="flex items-center gap-2 text-yellow-600">
+                    <FaClock size={14} />
+                    <span className="text-sm font-medium">Awaiting Payment</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {booking.special_requests && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                <FaInfoCircle className="text-blue-600" />
+                Special Requests
+              </h4>
+              <p className="text-blue-700 whitespace-pre-wrap">{booking.special_requests}</p>
+            </div>
+          )}
+
+          {booking.rejection_reason && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <h4 className="font-semibold text-red-800 mb-1">Rejection Reason</h4>
+              <p className="text-red-700">{booking.rejection_reason}</p>
+            </div>
+          )}
+
+          {booking.status === 'pending' && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  console.log('Confirm button clicked for booking:', booking.id);
+                  console.log('Setting selectedBooking to:', booking);
+                  console.log('Setting showBookingConfirmModal to true');
+                  setSelectedBooking(booking);
+                  setShowBookingConfirmModal(true);
+                  console.log('State should be updated now');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FaCheck className="text-sm" />
+                Confirm Booking
+              </button>
+              <button
+                onClick={() => {
+                  console.log('Reject button clicked for booking:', booking.id);
+                  console.log('Setting selectedBooking to:', booking);
+                  console.log('Setting showBookingRejectModal to true');
+                  setSelectedBooking(booking);
+                  setShowBookingRejectModal(true);
+                  console.log('State should be updated now');
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <FaBan className="text-sm" />
+                Reject Booking
+              </button>
+            </div>
+          )}
+
+          <div className="text-xs text-gray-500 mt-4">
+            <p>Booking created: {new Date(booking.created_at).toLocaleString()}</p>
+            {booking.confirmed_at && (
+              <p>Confirmed: {new Date(booking.confirmed_at).toLocaleString()}</p>
+            )}
+            {booking.rejected_at && (
+              <p>Rejected: {new Date(booking.rejected_at).toLocaleString()}</p>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Modals will be rendered at the root level */}
+    </div>
+  );
+};
+
 const HouseDetails = () => {
   const { state } = useLocation();
   const location = useLocation();
@@ -85,7 +375,7 @@ const HouseDetails = () => {
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(null);
  
   // ✅ NEW: Smooth scrolling and navigation states
-  const [activeSection, setActiveSection] = useState('add-property');
+  const [activeSection, setActiveSection] = useState(state?.activeSection || 'add-property');
   const [isScrolling, setIsScrolling] = useState(false);
 
   // ✅ NEW: Status statistics for dashboard
@@ -127,6 +417,13 @@ const HouseDetails = () => {
 
   // ✅ Visit requests and notifications state
   const [visitRequests, setVisitRequests] = useState([]);
+  
+  // ✅ Booking modal states
+  const [showBookingConfirmModal, setShowBookingConfirmModal] = useState(false);
+  const [showBookingRejectModal, setShowBookingRejectModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [confirmData, setConfirmData] = useState({ checkInTime: '', checkOutTime: '', ownerMessage: '' });
+  const [rejectReason, setRejectReason] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [loadingVisitRequests, setLoadingVisitRequests] = useState(false);
   
@@ -293,6 +590,92 @@ const HouseDetails = () => {
       console.error('Error checking bank details:', error);
       setHasBankDetails(false);
       return false;
+    }
+  };
+
+  // ✅ Booking handlers
+  const handleConfirmBooking = async () => {
+    console.log('handleConfirmBooking called');
+    console.log('confirmData:', confirmData);
+    console.log('selectedBooking:', selectedBooking);
+    
+    if (!selectedBooking) {
+      alert('No booking selected');
+      return;
+    }
+
+    try {
+      console.log('Confirming booking:', selectedBooking.id, confirmData);
+      
+      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/confirm`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerMessage: (confirmData.ownerMessage || '').trim()
+        })
+      });
+
+      const data = await response.json();
+      console.log('Confirm response:', data);
+
+      if (response.ok) {
+        alert('Booking confirmed successfully!');
+        setShowBookingConfirmModal(false);
+        setConfirmData({ checkInTime: '', checkOutTime: '', ownerMessage: '' });
+        setSelectedBooking(null);
+        // Refresh bookings by re-rendering the BookingsTab component
+        window.location.reload();
+      } else {
+        alert(`Failed to confirm booking: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      alert('Error confirming booking: ' + error.message);
+    }
+  };
+
+  const handleRejectBooking = async () => {
+    console.log('handleRejectBooking called');
+    console.log('rejectReason:', rejectReason);
+    console.log('selectedBooking:', selectedBooking);
+    
+    if (!rejectReason.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    if (!selectedBooking) {
+      alert('No booking selected');
+      return;
+    }
+
+    try {
+      console.log('Rejecting booking:', selectedBooking.id, rejectReason);
+      
+      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/reject`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rejectionReason: rejectReason.trim()
+        })
+      });
+
+      const data = await response.json();
+      console.log('Reject response:', data);
+
+      if (response.ok) {
+        alert('Booking rejected successfully');
+        setShowBookingRejectModal(false);
+        setRejectReason('');
+        setSelectedBooking(null);
+        // Refresh bookings by re-rendering the BookingsTab component
+        window.location.reload();
+      } else {
+        alert(`Failed to reject booking: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error);
+      alert('Error rejecting booking: ' + error.message);
     }
   };
 
@@ -2580,11 +2963,19 @@ const HouseDetails = () => {
                   <FaClock className="text-orange-600" />
                   Short Term Bookings
                 </h2>
-                <div className="text-center py-12 bg-white/80 rounded-lg">
-                  <FaClock className="mx-auto text-6xl text-gray-300 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Bookings Yet</h3>
-                  <p className="text-gray-500">Short term bookings will appear here.</p>
-                </div>
+                <BookingsTab 
+                  ownerId={owner_id}
+                  showBookingConfirmModal={showBookingConfirmModal}
+                  setShowBookingConfirmModal={setShowBookingConfirmModal}
+                  showBookingRejectModal={showBookingRejectModal}
+                  setShowBookingRejectModal={setShowBookingRejectModal}
+                  selectedBooking={selectedBooking}
+                  setSelectedBooking={setSelectedBooking}
+                  confirmData={confirmData}
+                  setConfirmData={setConfirmData}
+                  rejectReason={rejectReason}
+                  setRejectReason={setRejectReason}
+                />
               </div>
             </div>
           )}
@@ -2998,6 +3389,72 @@ const HouseDetails = () => {
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg"
               >
                 📝 Send Decline Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Confirm Modal */}
+      {showBookingConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Confirm Booking</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message to the guest (optional)</label>
+                <textarea
+                  value={confirmData.ownerMessage}
+                  onChange={(e) => setConfirmData({ ...confirmData, ownerMessage: e.target.value })}
+                  placeholder="Write a short note to the guest (e.g., check-in instructions, parking info)."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-24 resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleConfirmBooking}
+                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowBookingConfirmModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Reject Modal */}
+      {showBookingRejectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Reject Booking</h3>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Provide a reason, and optionally suggest another date/time or next steps."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-28 resize-none"
+              />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleRejectBooking}
+                className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => setShowBookingRejectModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>

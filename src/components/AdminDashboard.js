@@ -231,6 +231,8 @@ const AdminDashboard = () => {
   const [comments, setComments] = useState([]);
   const [boardingHouses, setBoardingHouses] = useState([]);
   const [visitRequests, setVisitRequests] = useState([]);
+  const [websiteRatings, setWebsiteRatings] = useState([]);
+  const [ratingStats, setRatingStats] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [replyModalOpen, setReplyModalOpen] = useState(false);
@@ -361,6 +363,24 @@ const AdminDashboard = () => {
     fetchData();
   }, [activeSection]);
 
+  // Fetch rating stats on component mount
+  useEffect(() => {
+    const fetchRatingStats = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/admin/website-ratings/stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setRatingStats(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching rating stats:', err);
+      }
+    };
+    fetchRatingStats();
+  }, []);
+
   // Clear search term when switching sections
   useEffect(() => {
     setSearchTerm('');
@@ -393,6 +413,9 @@ const AdminDashboard = () => {
         case 'boarding':
           endpoint = '/api/admin/boarding-houses';
           break;
+        case 'website-ratings':
+          endpoint = '/api/admin/website-ratings';
+          break;
         default:
           return;
       }
@@ -424,6 +447,9 @@ const AdminDashboard = () => {
             break;
           case 'boarding':
             setBoardingHouses(data.boardingHouses || []);
+            break;
+          case 'website-ratings':
+            setWebsiteRatings(data.data || []);
             break;
         }
       }
@@ -677,6 +703,7 @@ const AdminDashboard = () => {
     { id: 'visitRequests', label: 'Visit Requests', icon: CalendarCheck },
    /* { id: 'boarding', label: 'Boarding Houses', icon: Building },*/
     { id: 'comments', label: 'Comments & Replies', icon: MessageCircle },
+    { id: 'website-ratings', label: 'Website Ratings', icon: Star },
   ];
 
   // House Details Modal Component
@@ -1822,6 +1849,24 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+        
+        {/* Third Stats Row - Website Rating */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Website Rating</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {ratingStats ? ratingStats.averageRating : '0.0'}
+                </p>
+                <div className="flex gap-2 mt-1 text-xs">
+                  <span className="text-purple-600">● {ratingStats ? ratingStats.totalRatings : 0} total</span>
+                </div>
+              </div>
+              <Star className="text-purple-500" size={32} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -2850,6 +2895,146 @@ const AdminDashboard = () => {
     setEmailModalOpen(true);
   };
 
+  const renderWebsiteRatings = () => {
+    const getRatingStars = (rating) => {
+      const stars = [];
+      for (let i = 1; i <= 5; i++) {
+        stars.push(
+          <Star
+            key={i}
+            size={16}
+            className={i <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+          />
+        );
+      }
+      return stars;
+    };
+
+    const getRatingColor = (rating) => {
+      if (rating >= 4) return 'text-green-600 bg-green-100';
+      if (rating >= 3) return 'text-yellow-600 bg-yellow-100';
+      return 'text-red-600 bg-red-100';
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header with Stats */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/20">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Website Ratings Management</h3>
+                <p className="text-sm text-gray-600 mt-1">View and manage user ratings for the website</p>
+              </div>
+              
+              {/* Rating Stats */}
+              {ratingStats && (
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <span className="text-gray-600">Average: {ratingStats.averageRating}/5</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className="text-gray-600">Total: {ratingStats.totalRatings}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Rating Distribution */}
+          {ratingStats && (
+            <div className="px-6 py-4 bg-gray-50/80 border-b border-white/20">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Rating Distribution</h4>
+              <div className="grid grid-cols-5 gap-4">
+                {[5, 4, 3, 2, 1].map(star => (
+                  <div key={star} className="text-center">
+                    <div className="flex justify-center mb-1">
+                      {getRatingStars(star)}
+                    </div>
+                    <div className="text-lg font-semibold text-gray-800">
+                      {ratingStats.ratingDistribution[`${star}Star`] || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">ratings</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Ratings List */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/20">
+            <h3 className="text-lg font-semibold">Recent Ratings</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {websiteRatings.map(rating => (
+                  <tr key={rating.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm">{rating.id}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div>
+                        <div className="font-medium">{rating.username || 'Anonymous'}</div>
+                        {rating.email && (
+                          <div className="text-xs text-gray-500">{rating.email}</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {getRatingStars(rating.rating)}
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRatingColor(rating.rating)}`}>
+                          {rating.rating}/5
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm max-w-xs">
+                      <div className="truncate" title={rating.comment || 'No comment'}>
+                        {rating.comment || 'No comment'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {rating.created_at ? new Date(rating.created_at).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <button
+                        onClick={() => handleDelete('website-ratings', rating.id)}
+                        className="text-red-600 hover:text-red-800 flex items-center gap-1"
+                      >
+                        <Trash2 size={16} />
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {websiteRatings.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No ratings found
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderVisitRequests = () => {
     const getStatusColor = (status) => {
       switch (status) {
@@ -3064,6 +3249,8 @@ const AdminDashboard = () => {
         return renderBoardingHouses();
       case 'comments':
         return renderComments();
+      case 'website-ratings':
+        return renderWebsiteRatings();
       default:
         return renderDashboard();
     }

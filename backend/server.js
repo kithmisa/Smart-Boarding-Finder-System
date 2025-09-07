@@ -19,6 +19,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const visitRequestRoutes = require('./routes/visitRequestRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const waitingListRoutes = require('./routes/waitingListRoutes');
+// const payhereRoutes = require('./routes/payhereRoutes'); // Removed PayHere integration
 
 const app = express();
 app.use(cors());
@@ -39,6 +40,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/visit-requests', visitRequestRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/waiting-list', waitingListRoutes);
+// app.use('/api/payment/payhere', payhereRoutes); // Disabled PayHere routes
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));

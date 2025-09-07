@@ -20,6 +20,9 @@ const {
   getOwnerBankingDetails
 } = require('../controllers/adminController');
 
+// Import website rating functions
+const { getRecentRatings, deleteRating, getRatingStats } = require('../controllers/websiteRatingController');
+
 // Admin login
 router.post('/login', loginAdmin);
 
@@ -312,6 +315,40 @@ router.put('/boarding-houses/:id/confirm', async (req, res) => {
   }
 });
 
+// Website Rating Admin Routes
+// Get all website ratings
+router.get('/website-ratings', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const result = await getRecentRatings(req, res);
+  } catch (error) {
+    console.error('Error fetching website ratings:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get website rating statistics
+router.get('/website-ratings/stats', async (req, res) => {
+  try {
+    const result = await getRatingStats(req, res);
+  } catch (error) {
+    console.error('Error fetching rating stats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete a website rating
+router.delete('/website-ratings/:id', async (req, res) => {
+  try {
+    const result = await deleteRating(req, res);
+  } catch (error) {
+    console.error('Error deleting rating:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Generic delete endpoint
 router.delete('/:type/:id', async (req, res) => {
   const db = require('../db');
@@ -337,6 +374,10 @@ router.delete('/:type/:id', async (req, res) => {
       case 'houses':
         tableName = 'houses';
         successMessage = 'House deleted successfully';
+        break;
+      case 'website-ratings':
+        tableName = 'website_ratings';
+        successMessage = 'Rating deleted successfully';
         break;
       default:
         return res.status(400).json({ success: false, message: 'Invalid type' });

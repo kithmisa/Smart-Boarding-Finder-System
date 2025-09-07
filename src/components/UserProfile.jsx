@@ -60,6 +60,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   // State for visit requests and notifications
   const [visitRequests, setVisitRequests] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [bookings, setBookings] = useState([]);
   
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -70,6 +71,12 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  
+  // State for payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [processingPayment, setProcessingPayment] = useState(false);
   
   // State for loading and errors
   const [loading, setLoading] = useState(true);
@@ -84,6 +91,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
              fetchUserProfile(),
              fetchFavorites(),
              fetchVisitRequests(),
+             fetchBookings(),
              fetchNotifications()
            ]);
          } catch (error) {
@@ -328,7 +336,26 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
     }
   };
 
-
+  // Fetch user bookings
+  const fetchBookings = async () => {
+    try {
+      console.log('Fetching bookings for userId:', userId);
+      const response = await fetch(`http://localhost:5000/api/bookings/stay/user/${userId}`);
+      console.log('Bookings response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Bookings data:', data);
+        setBookings(data.bookings || []);
+      } else {
+        console.error('Failed to fetch bookings:', response.status);
+        const errorText = await response.text();
+        console.error('Bookings error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
 
   // Handle navigation
   const handleBackToHome = () => {
@@ -667,6 +694,61 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
     }
   };
 
+  // Handle Pay Now button click
+  const handlePayNow = (booking) => {
+    // Store booking data in localStorage to pass to Payment component
+    localStorage.setItem('selectedBooking', JSON.stringify(booking));
+    // Navigate to Payment component
+    navigate('/payment');
+  };
+
+  // Handle payment processing
+  const handleProcessPayment = async () => {
+    if (!selectedBooking) return;
+    
+    setProcessingPayment(true);
+    
+    try {
+      // Simulate payment processing (replace with actual payment gateway integration)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Update payment status in backend
+      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payment_status: 'paid',
+          payment_method: paymentMethod
+        }),
+      });
+
+      if (response.ok) {
+        // Update local bookings state
+        setBookings(prevBookings => 
+          prevBookings.map(booking => 
+            booking.id === selectedBooking.id 
+              ? { ...booking, payment_status: 'paid' }
+              : booking
+          )
+        );
+        
+        alert('Payment completed successfully!');
+        setShowPaymentModal(false);
+        setSelectedBooking(null);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   // Handle favorite navigation
   const handleFavoriteClick = (houseId) => {
     navigate(`/boarding/${houseId}`);
@@ -838,6 +920,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
              { id: 'profile', label: 'Profile', icon: User },
              { id: 'favorites', label: 'Favorites', icon: Heart, count: favorites?.length || 0 },
              { id: 'requests', label: 'Visit Requests', icon: Calendar, count: visitRequests?.length || 0 },
+             { id: 'bookings', label: 'My Bookings', icon: ClockIcon, count: bookings?.length || 0 },
              { id: 'notifications', label: 'Notifications', icon: Bell, count: notifications?.filter(n => !n.is_read)?.length || 0 }
            ].map((tab) => {
              const Icon = tab.icon;
@@ -1375,6 +1458,159 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
             </div>
           )}
 
+          {/* Bookings Tab */}
+          {activeTab === 'bookings' && (
+            <div className="tab-content">
+              <div className="content-header">
+                <h2 className="content-title">My Bookings</h2>
+              </div>
+
+              {bookings && bookings.length > 0 ? (
+                <div className="space-y-4">
+                  {bookings.map((booking) => (
+                    <div
+                      key={booking.id}
+                      className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-400"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">{booking.house_title}</h3>
+                          <p className="text-gray-600">{booking.house_address}</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 ${
+                          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {booking.status === 'pending' && <ClockIcon className="text-yellow-600" size={16} />}
+                          {booking.status === 'confirmed' && <CheckCircle className="text-green-600" size={16} />}
+                          {booking.status === 'rejected' && <XCircle className="text-red-600" size={16} />}
+                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="font-semibold text-gray-700 mb-2">Booking Details</h4>
+                          <p className="text-gray-600"><strong>Check-in:</strong> {new Date(booking.check_in_date).toLocaleDateString()}</p>
+                          <p className="text-gray-600"><strong>Check-out:</strong> {new Date(booking.check_out_date).toLocaleDateString()}</p>
+                          {booking.check_in_time && (
+                            <p className="text-gray-600"><strong>Check-in Time:</strong> {booking.check_in_time}</p>
+                          )}
+                          {booking.check_out_time && (
+                            <p className="text-gray-600"><strong>Check-out Time:</strong> {booking.check_out_time}</p>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-700 mb-2">Property Owner</h4>
+                          <p className="text-gray-600"><strong>Name:</strong> {booking.owner_name}</p>
+                          <p className="text-gray-600"><strong>Email:</strong> {booking.owner_email}</p>
+                          <p className="text-gray-600"><strong>Contact:</strong> {booking.owner_contact}</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold text-gray-700 mb-2">Payment Information</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Total Amount</p>
+                            <p className="font-semibold text-gray-800">Rs. {booking.total_amount}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Advance Payment</p>
+                            <p className="font-semibold text-gray-800">Rs. {booking.advance_payment}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Service Charge</p>
+                            <p className="font-semibold text-gray-800">Rs. {booking.service_charge}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Total Payment</p>
+                            <p className="font-semibold text-orange-600">Rs. {booking.total_payment}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Payment Status and Pay Now Button */}
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">Payment Status:</span>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                booking.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                booking.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {booking.payment_status === 'paid' ? '✅ Paid' :
+                                 booking.payment_status === 'pending' ? '⏳ Pending' :
+                                 '❌ Refunded'}
+                              </span>
+                            </div>
+                            
+                            {booking.status === 'confirmed' && booking.payment_status === 'pending' && (
+                              <button
+                                onClick={() => handlePayNow(booking)}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                              >
+                                <span>💳</span>
+                                Pay Now
+                              </button>
+                            )}
+                            
+                            {booking.payment_status === 'paid' && (
+                              <div className="flex items-center gap-2 text-green-600">
+                                <CheckCircle size={16} />
+                                <span className="text-sm font-medium">Payment Completed</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {(booking.special_requests || booking.owner_message) && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                            <MessageSquare className="text-blue-600" size={16} />
+                            Messages
+                          </h4>
+                          {booking.special_requests && (
+                            <p className="text-blue-700 whitespace-pre-wrap"><strong>Guest Requests:</strong> {booking.special_requests}</p>
+                          )}
+                          {booking.owner_message && (
+                            <p className="text-green-700 whitespace-pre-wrap mt-2"><strong>Owner Message:</strong> {booking.owner_message}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {booking.rejection_reason && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                          <h4 className="font-semibold text-red-800 mb-2">Rejection Reason</h4>
+                          <p className="text-red-700">{booking.rejection_reason}</p>
+                        </div>
+                      )}
+
+                      <div className="text-xs text-gray-500 mt-4">
+                        <p>Booking created: {new Date(booking.created_at).toLocaleString()}</p>
+                        {booking.confirmed_at && (
+                          <p>Confirmed: {new Date(booking.confirmed_at).toLocaleString()}</p>
+                        )}
+                        {booking.rejected_at && (
+                          <p>Rejected: {new Date(booking.rejected_at).toLocaleString()}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-white rounded-lg">
+                  <ClockIcon className="mx-auto text-6xl text-gray-300 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Bookings Yet</h3>
+                  <p className="text-gray-500">Your stay bookings will appear here when you make reservations.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
             <div className="tab-content">
@@ -1495,6 +1731,78 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
                       </button>
                     </p>
                   )}
+           </div>
+         </div>
+       )}
+
+       {/* Payment Modal */}
+       {showPaymentModal && selectedBooking && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+             <div className="flex justify-between items-center mb-4">
+               <h3 className="text-lg font-semibold text-gray-800">Complete Payment</h3>
+               <button
+                 onClick={() => setShowPaymentModal(false)}
+                 className="text-gray-400 hover:text-gray-600"
+               >
+                 <X size={20} />
+               </button>
+             </div>
+
+             <div className="mb-4">
+               <h4 className="font-medium text-gray-700 mb-2">Property: {selectedBooking.house_title}</h4>
+               <p className="text-sm text-gray-600 mb-4">{selectedBooking.house_address}</p>
+               
+               <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="text-gray-600">Total Payment:</span>
+                   <span className="font-semibold text-lg text-orange-600">Rs. {selectedBooking.total_payment}</span>
+                 </div>
+                 <div className="text-sm text-gray-500">
+                   <p>Advance: Rs. {selectedBooking.advance_payment}</p>
+                   <p>Service Charge: Rs. {selectedBooking.service_charge}</p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="mb-4">
+               <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+               <select
+                 value={paymentMethod}
+                 onChange={(e) => setPaymentMethod(e.target.value)}
+                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+               >
+                 <option value="card">Credit/Debit Card</option>
+                 <option value="bank">Bank Transfer</option>
+                 <option value="mobile">Mobile Payment</option>
+               </select>
+             </div>
+
+             <div className="flex gap-3">
+               <button
+                 onClick={() => setShowPaymentModal(false)}
+                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+               >
+                 Cancel
+               </button>
+               <button
+                 onClick={handleProcessPayment}
+                 disabled={processingPayment}
+                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+               >
+                 {processingPayment ? (
+                   <>
+                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                     Processing...
+                   </>
+                 ) : (
+                   <>
+                     <span>💳</span>
+                     Pay Rs. {selectedBooking.total_payment}
+                   </>
+                 )}
+               </button>
+             </div>
            </div>
          </div>
        )}

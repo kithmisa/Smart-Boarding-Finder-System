@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const {
-  initiatePayment,
-  handlePaymentNotification,
+  // Removed PayHere-specific endpoints. Keeping manual record/status endpoints.
   getPaymentStatus,
   getPaymentsByBooking,
   createPaymentRecord
 } = require('../controllers/paymentController');
 
-// ✅ POST - Initiate PayHere payment
-router.post('/initiate', initiatePayment);
-
-// ✅ POST - PayHere notification webhook (must be accessible without authentication)
-router.post('/notify', handlePaymentNotification);
+// Removed /initiate and /notify endpoints related to PayHere
 
 // ✅ GET - Get payment status by payment ID
 router.get('/:paymentId/status', getPaymentStatus);

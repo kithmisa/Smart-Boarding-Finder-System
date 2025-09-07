@@ -6,7 +6,12 @@ const {
   getBookingById,
   updateBookingStatus,
   getBookingsByHouse,
-  getAllBookings
+  getAllBookings,
+  getStayBookingsForOwner,
+  getStayBookingsForUser,
+  confirmStayBooking,
+  rejectStayBooking,
+  updatePaymentStatus
 } = require('../controllers/bookingController');
 
 // ✅ POST - Create visit booking
@@ -26,5 +31,20 @@ router.get('/:id', getBookingById);
 
 // ✅ PUT - Update booking status
 router.put('/:id/status', updateBookingStatus);
+
+// ✅ GET - Get stay bookings for owner
+router.get('/stay/owner/:ownerId', getStayBookingsForOwner);
+
+// ✅ GET - Get stay bookings for user
+router.get('/stay/user/:userId', getStayBookingsForUser);
+
+// ✅ PUT - Confirm stay booking
+router.put('/stay/:id/confirm', confirmStayBooking);
+
+// ✅ PUT - Reject stay booking
+router.put('/stay/:id/reject', rejectStayBooking);
+
+// ✅ PUT - Update payment status
+router.put('/stay/:id/payment', updatePaymentStatus);
 
 module.exports = router;

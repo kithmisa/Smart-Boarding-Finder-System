@@ -40,6 +40,12 @@ const BoardingDetail = () => {
     message: ''
   });
   const [waitingListCount, setWaitingListCount] = useState(0);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedTimes, setSelectedTimes] = useState({
+    checkInTime: '',
+    checkOutTime: ''
+  });
+  const [specialRequests, setSpecialRequests] = useState('');
 
   // Check if house is in user's favorites
   const checkFavoriteStatus = async () => {
@@ -331,7 +337,7 @@ const BoardingDetail = () => {
     }
   };
 
-  const handleStayBooking = async () => {
+  const handleStayBooking = () => {
     if (!stayDates.checkIn || !stayDates.checkOut) {
       alert('Please select check-in and check-out dates');
       return;
@@ -348,6 +354,18 @@ const BoardingDetail = () => {
       return;
     }
 
+    // Show time picker modal
+    setShowTimePicker(true);
+  };
+
+  const handleTimeSelection = async () => {
+    if (!selectedTimes.checkInTime || !selectedTimes.checkOutTime) {
+      alert('Please select both check-in and check-out times');
+      return;
+    }
+
+    const userId = localStorage.getItem('user_id');
+    
     try {
       const response = await fetch('http://localhost:5000/api/bookings/stay', {
         method: 'POST',
@@ -356,26 +374,25 @@ const BoardingDetail = () => {
           houseId: id,
           checkIn: stayDates.checkIn,
           checkOut: stayDates.checkOut,
-          userId: parseInt(userId)
+          userId: parseInt(userId),
+          totalAmount: calculateStayPrice(),
+          advancePayment: calculateAdvancePayment(),
+          serviceCharge: calculateServiceCharge(),
+          totalPayment: calculateTotalPayment(),
+          checkInTime: selectedTimes.checkInTime,
+          checkOutTime: selectedTimes.checkOutTime,
+          specialRequests: specialRequests.trim()
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Navigate to payment gateway with booking details
-        navigate(`/boarding/${id}/payment`, {
-          state: {
-            type: 'stay',
-            bookingDetails: {
-              bookingId: data.booking.id,
-              houseTitle: house.title,
-              checkIn: stayDates.checkIn,
-              checkOut: stayDates.checkOut,
-              totalAmount: calculateStayPrice(),
-              advancePayment: calculateAdvancePayment()
-            }
-          }
-        });
+        alert('Booking request submitted successfully! The property owner will review your request and you will be notified of the status.');
+        // Reset the form
+        setStayDates({ checkIn: '', checkOut: '' });
+        setSelectedTimes({ checkInTime: '', checkOutTime: '' });
+        setSpecialRequests('');
+        setShowTimePicker(false);
       } else {
         alert('Failed to book stay. Please try again.');
       }
@@ -404,8 +421,16 @@ const BoardingDetail = () => {
     return nights > 0 ? nights * house.pricePerNight : 0;
   };
 
+  const calculateServiceCharge = () => {
+    return calculateStayPrice() * 0.10; // 10% service charge
+  };
+
   const calculateAdvancePayment = () => {
-  return calculateStayPrice() / 4;
+    return calculateStayPrice(); // 100% of total price for property owner
+  };
+
+  const calculateTotalPayment = () => {
+    return calculateAdvancePayment() + calculateServiceCharge();
   };
 
   const getTomorrowDate = () => {
@@ -893,9 +918,13 @@ const BoardingDetail = () => {
                               <p className="text-sm text-blue-800">
                                 <strong>Total Price:</strong> Rs. {calculateStayPrice()}
                               </p>
-                              <p className="text-xs text-blue-600 mt-1">
-                                Advance Payment: Rs. {calculateAdvancePayment()}
-                              </p>
+                              <div className="text-xs text-blue-600 mt-1 space-y-1">
+                                <p>Base Amount (100%): Rs. {calculateAdvancePayment()}</p>
+                                <p>Service Charge (10%): Rs. {calculateServiceCharge()}</p>
+                                <p className="font-semibold text-blue-900 border-t pt-1">
+                                  Total Payment: Rs. {calculateTotalPayment()}
+                                </p>
+                              </div>
                             </div>
                           )}
 
@@ -1571,6 +1600,127 @@ const BoardingDetail = () => {
                 }`}
               >
                 {waitingListStatus === 'loading' ? 'Joining...' : 'Join Waiting List'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Time Picker Modal */}
+      {showTimePicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Select Check-in & Check-out Times</h3>
+              <button
+                onClick={() => setShowTimePicker(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-gray-900 mb-2">Booking Summary</h4>
+                <p className="text-sm text-gray-700">
+                  <strong className="text-gray-900">Check-in:</strong> {new Date(stayDates.checkIn).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong className="text-gray-900">Check-out:</strong> {new Date(stayDates.checkOut).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong className="text-gray-900">Total Payment:</strong> Rs. {calculateTotalPayment()}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Preferred Check-in Time
+                  </label>
+                  <select
+                    value={selectedTimes.checkInTime}
+                    onChange={(e) => setSelectedTimes({...selectedTimes, checkInTime: e.target.value})}
+                    className="w-full px-3 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 font-medium"
+                    style={{ color: '#111827' }}
+                  >
+                    <option value="" style={{ color: '#6B7280' }}>Select check-in time</option>
+                    <option value="12:00" style={{ color: '#111827' }}>12:00 PM</option>
+                    <option value="13:00" style={{ color: '#111827' }}>1:00 PM</option>
+                    <option value="14:00" style={{ color: '#111827' }}>2:00 PM</option>
+                    <option value="15:00" style={{ color: '#111827' }}>3:00 PM</option>
+                    <option value="16:00" style={{ color: '#111827' }}>4:00 PM</option>
+                    <option value="17:00" style={{ color: '#111827' }}>5:00 PM</option>
+                    <option value="18:00" style={{ color: '#111827' }}>6:00 PM</option>
+                    <option value="19:00" style={{ color: '#111827' }}>7:00 PM</option>
+                    <option value="20:00" style={{ color: '#111827' }}>8:00 PM</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Preferred Check-out Time
+                  </label>
+                  <select
+                    value={selectedTimes.checkOutTime}
+                    onChange={(e) => setSelectedTimes({...selectedTimes, checkOutTime: e.target.value})}
+                    className="w-full px-3 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 font-medium"
+                    style={{ color: '#111827' }}
+                  >
+                    <option value="" style={{ color: '#6B7280' }}>Select check-out time</option>
+                    <option value="08:00" style={{ color: '#111827' }}>8:00 AM</option>
+                    <option value="09:00" style={{ color: '#111827' }}>9:00 AM</option>
+                    <option value="10:00" style={{ color: '#111827' }}>10:00 AM</option>
+                    <option value="11:00" style={{ color: '#111827' }}>11:00 AM</option>
+                    <option value="12:00" style={{ color: '#111827' }}>12:00 PM</option>
+                    <option value="13:00" style={{ color: '#111827' }}>1:00 PM</option>
+                    <option value="14:00" style={{ color: '#111827' }}>2:00 PM</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Special Requests (Optional)
+                  </label>
+                  <textarea
+                    value={specialRequests}
+                    onChange={(e) => setSpecialRequests(e.target.value)}
+                    placeholder="Any special requests, dietary requirements, accessibility needs, or additional information for your stay..."
+                    className="w-full px-3 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 font-medium resize-none"
+                    rows={4}
+                    style={{ color: '#111827' }}
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Let the property owner know about any special requirements or requests you may have.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                <p className="text-sm text-yellow-900 font-medium">
+                  <strong className="text-yellow-900">Note:</strong> The property owner will review your preferred times and confirm the final check-in and check-out times.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowTimePicker(false)}
+                className="flex-1 px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-semibold transition-colors border-2 border-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTimeSelection}
+                disabled={!selectedTimes.checkInTime || !selectedTimes.checkOutTime}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-colors border-2 ${
+                  !selectedTimes.checkInTime || !selectedTimes.checkOutTime
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed border-gray-400'
+                    : 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
+                }`}
+              >
+                Submit Booking Request
               </button>
             </div>
           </div>
