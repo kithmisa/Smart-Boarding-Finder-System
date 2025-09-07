@@ -422,7 +422,7 @@ const BoardingDetail = () => {
   };
 
   const calculateServiceCharge = () => {
-    return calculateStayPrice() * 0.10; // 10% service charge
+    return house.pricePerNight * 0.10; // 10% service charge
   };
 
   const calculateAdvancePayment = () => {
