@@ -384,6 +384,7 @@ const HouseDetails = () => {
     city: '',
     type: '',
     location: '',
+    googleMapsUrl: '',
     highlights: '',
     shortTerm: false,
     pricePerNight: '',
@@ -719,6 +720,9 @@ const HouseDetails = () => {
       data.append('city', formData.city);
       data.append('type', formData.type);
       data.append('location', formData.location);
+      if (formData.googleMapsUrl) {
+        data.append('googleMapsUrl', formData.googleMapsUrl);
+      }
       data.append('highlights', formData.highlights);
       data.append('shortTerm', formData.shortTerm ? 'true' : 'false');
       data.append('pricePerNight', formData.pricePerNight || '');
@@ -833,6 +837,7 @@ const HouseDetails = () => {
         city: formData.city,
         type: formData.type,
         location: formData.location,
+        googleMapsUrl: formData.googleMapsUrl || '',
         highlights: formData.highlights,
         shortTerm: formData.shortTerm,
         pricePerNight: formData.pricePerNight || '',
@@ -2112,6 +2117,24 @@ const HouseDetails = () => {
                     <option value="S K Town">S K Town</option>
                     <option value="Devinuwara">Devinuwara</option>
                   </select>
+
+                  <input
+                    name="googleMapsUrl"
+                    value={formData.googleMapsUrl}
+                    onChange={handleChange}
+                    placeholder="Google Maps link (Share > Copy link)"
+                    className="w-full border px-4 py-2 rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = (formData.googleMapsUrl || '').trim() || 'https://www.google.com/maps';
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+                  >
+                    Open Google Maps
+                  </button>
 
                   <textarea
                     name="highlights"

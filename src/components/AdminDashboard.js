@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Users, Home, User, MessageCircle, Settings, Menu, X, Reply, Eye, Trash2, CheckCircle, Clock, Building, MapPin, Calendar, Star, Image, ExternalLink, CalendarCheck, Mail, Send } from 'lucide-react';
+import { Users, Home, User, MessageCircle, Settings, Menu, X, Reply, Eye, Trash2, CheckCircle, Clock, Building, MapPin, Calendar, Star, Image, ExternalLink, CalendarCheck, Mail, Send, CreditCard } from 'lucide-react';
 import bgHero from '../assets/image.png';
 import { Moon, Sun } from 'lucide-react';
 
@@ -244,6 +244,12 @@ const AdminDashboard = () => {
   const [messageFilter, setMessageFilter] = useState('all'); // 'all', 'unread', 'replied'
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
+  // Finance & payments
+  const [financeSummary, setFinanceSummary] = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [paymentStats, setPaymentStats] = useState({ statusCounts: {}, typeCounts: {} });
+  const [paymentFilters, setPaymentFilters] = useState({ type: 'all', status: 'all', from: '', to: '', q: '' });
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState(new Set());
   
   // Email modal states
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -345,6 +351,162 @@ const AdminDashboard = () => {
     setDarkMode(!darkMode);
   };
 
+  // Payments tab
+  const renderPayments = () => {
+    const stats = paymentStats || { statusCounts: {}, typeCounts: {} };
+    const statusList = Object.entries(stats.statusCounts).map(([k, v]) => ({ key: k, value: v }));
+    const typeList = Object.entries(stats.typeCounts).map(([k, v]) => ({ key: k, value: v }));
+
+    const toggleSelectAll = (checked) => {
+      if (checked) {
+        setSelectedPaymentIds(new Set(payments.map(p => p.id)));
+      } else {
+        setSelectedPaymentIds(new Set());
+      }
+    };
+
+    const toggleSelect = (id, checked) => {
+      setSelectedPaymentIds(prev => {
+        const next = new Set(prev);
+        if (checked) next.add(id); else next.delete(id);
+        return next;
+      });
+    };
+
+    const exportCsv = async () => {
+      try {
+        const qs = new URLSearchParams(paymentFilters).toString();
+        const url = `http://localhost:5000/api/admin/payments/export?${qs}`;
+        window.open(url, '_blank');
+      } catch (e) {
+        alert('Export failed');
+      }
+    };
+
+    const exportSelectedCsv = () => {
+      if (selectedPaymentIds.size === 0) {
+        alert('No payments selected');
+        return;
+      }
+      // Build CSV in-browser for selected rows
+      const header = ['id','order_id','type','status','amount','currency','payment_method','transaction_id','notes','booking_id','house_id','house_title','owner_id','owner_name','user_name','created_at'];
+      const lines = [header.join(',')];
+      for (const p of payments) {
+        if (!selectedPaymentIds.has(p.id)) continue;
+        const row = [
+          p.id, p.order_id, p.type, p.status, p.amount, p.currency, p.payment_method, p.transaction_id || '',
+          (p.notes || '').toString().replace(/\n|\r|,/g, ' '), p.booking_id || '', p.house_id || '',
+          (p.house_title || '').replace(/,/g, ' '), p.owner_id || '', (p.owner_name || '').replace(/,/g, ' '),
+          (p.user_name || '').replace(/,/g, ' '), p.created_at
+        ];
+        lines.push(row.join(','));
+      }
+      const csv = lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'payments_selected.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Filters and stats */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Payments</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={exportSelectedCsv} className="px-3 py-2 bg-gray-600 text-white rounded">Export Selected</button>
+              <button onClick={exportCsv} className="px-3 py-2 bg-gray-800 text-white rounded">Export CSV</button>
+              <button onClick={() => fetchData()} className="px-3 py-2 bg-blue-600 text-white rounded">Refresh</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4">
+            <select
+              value={paymentFilters.type}
+              onChange={(e) => setPaymentFilters({ ...paymentFilters, type: e.target.value })}
+              className="border rounded px-3 py-2"
+            >
+              <option value="all">All Types</option>
+              <option value="listing_fee">Listing Fees</option>
+              <option value="owner_payout">Owner Payouts</option>
+              <option value="booking">Bookings</option>
+            </select>
+            <select
+              value={paymentFilters.status}
+              onChange={(e) => setPaymentFilters({ ...paymentFilters, status: e.target.value })}
+              className="border rounded px-3 py-2"
+            >
+              <option value="all">All Statuses</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+            </select>
+            <input type="date" value={paymentFilters.from} onChange={(e) => setPaymentFilters({ ...paymentFilters, from: e.target.value })} className="border rounded px-3 py-2" />
+            <input type="date" value={paymentFilters.to} onChange={(e) => setPaymentFilters({ ...paymentFilters, to: e.target.value })} className="border rounded px-3 py-2" />
+            <input type="text" placeholder="Search..." value={paymentFilters.q} onChange={(e) => setPaymentFilters({ ...paymentFilters, q: e.target.value })} className="border rounded px-3 py-2" />
+          </div>
+          <div className="text-sm text-gray-600 mt-3">
+            Status: {statusList.map(s => `${s.key}: ${s.value}`).join('  |  ')}
+            <span className="mx-2">•</span>
+            Types: {typeList.map(t => `${t.key}: ${t.value}`).join('  |  ')}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <input type="checkbox" onChange={(e) => toggleSelectAll(e.target.checked)} checked={payments.length > 0 && selectedPaymentIds.size === payments.length} />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">House</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {payments.map(p => (
+                <tr key={p.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm">
+                    <input type="checkbox" checked={selectedPaymentIds.has(p.id)} onChange={(e) => toggleSelect(p.id, e.target.checked)} />
+                  </td>
+                  <td className="px-6 py-4 text-sm font-mono">{p.order_id}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${p.type === 'listing_fee' ? 'bg-indigo-100 text-indigo-800' : (p.type === 'owner_payout' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800')}`}>{p.type}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${p.status === 'completed' ? 'bg-green-100 text-green-800' : (p.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800')}`}>{p.status}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm">Rs. {p.amount}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <div className="font-medium">{p.house_title || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{p.owner_name || '-'}</td>
+                  <td className="px-6 py-4 text-sm">{p.user_name || '-'}</td>
+                  <td className="px-6 py-4 text-sm">{p.created_at ? new Date(p.created_at).toLocaleString() : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {payments.length === 0 && (
+            <div className="text-center py-8 text-gray-500">No payments found</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Dark mode classes
   const darkClasses = {
     bg: darkMode ? 'bg-gray-900' : 'bg-transparent',
@@ -354,15 +516,75 @@ const AdminDashboard = () => {
     textMuted: darkMode ? 'text-gray-400' : 'text-gray-500',
     border: darkMode ? 'border-gray-700' : 'border-gray-200',
     hover: darkMode ? 'hover:bg-gray-700/90' : 'hover:bg-gray-50/90',
-    sidebar: darkMode ? 'bg-gray-800/95' : 'bg-white/95',
-    sidebarHover: darkMode ? 'hover:bg-gray-700/90' : 'hover:bg-blue-50/90',
-    sidebarActive: darkMode ? 'bg-gray-700/90 border-gray-600' : 'bg-blue-100/90 border-blue-500'
+    sidebar: darkMode
+      ? 'bg-gradient-to-b from-gray-900/95 to-gray-800/95 backdrop-blur-xl border-r border-gray-700'
+      : 'bg-white/90 backdrop-blur-md border-r border-gray-200',
+    sidebarHover: darkMode ? 'hover:bg-gray-800/80' : 'hover:bg-blue-50/80',
+    sidebarActive: darkMode
+      ? 'bg-gray-800/90 border-l-4 border-blue-500'
+      : 'bg-blue-50/90 border-l-4 border-blue-600'
   };
+
+  // Dynamic sidebar background based on hero image average color
+  const [sidebarBgStyle, setSidebarBgStyle] = useState({});
+
+  useEffect(() => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = bgHero;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 32;
+        canvas.width = size;
+        canvas.height = size;
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+          n++;
+        }
+        if (n > 0) {
+          r = Math.round(r / n);
+          g = Math.round(g / n);
+          b = Math.round(b / n);
+          const adjust = (c, factor, lighten = false) => {
+            return lighten
+              ? Math.min(255, Math.round(c + (255 - c) * factor))
+              : Math.max(0, Math.round(c * (1 - factor)));
+          };
+          const top = darkMode
+            ? [adjust(r, 0.25), adjust(g, 0.25), adjust(b, 0.25)]
+            : [adjust(r, 0.15, true), adjust(g, 0.15, true), adjust(b, 0.15, true)];
+          const bottom = darkMode
+            ? [adjust(r, 0.35), adjust(g, 0.35), adjust(b, 0.35)]
+            : [adjust(r, 0.05, true), adjust(g, 0.05, true), adjust(b, 0.05, true)];
+          const aTop = darkMode ? 0.95 : 0.9;
+          const aBottom = 0.85;
+          setSidebarBgStyle({
+            background: `linear-gradient(180deg, rgba(${top[0]}, ${top[1]}, ${top[2]}, ${aTop}) 0%, rgba(${bottom[0]}, ${bottom[1]}, ${bottom[2]}, ${aBottom}) 100%)`
+          });
+        }
+      };
+    } catch {}
+  }, [darkMode]);
 
   // Fetch data based on active section
   useEffect(() => {
     fetchData();
   }, [activeSection]);
+
+  // Auto-refresh payments list when filters change
+  useEffect(() => {
+    if (activeSection === 'payments') {
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentFilters]);
 
   // Fetch rating stats on component mount
   useEffect(() => {
@@ -388,7 +610,17 @@ const AdminDashboard = () => {
   }, [activeSection]);
 
   const fetchData = async () => {
-    if (activeSection === 'dashboard') return;
+    if (activeSection === 'dashboard') {
+      // Load finance summary for overview
+      try {
+        const res = await fetch('http://localhost:5000/api/admin/finance/summary');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setFinanceSummary(data.summary);
+        }
+      } catch (e) {}
+      return;
+    }
     
     setLoading(true);
     setError('');
@@ -419,6 +651,10 @@ const AdminDashboard = () => {
           break;
         case 'website-ratings':
           endpoint = '/api/admin/website-ratings';
+          break;
+        case 'payments':
+          const qs = new URLSearchParams(paymentFilters).toString();
+          endpoint = `/api/admin/payments?${qs}`;
           break;
         default:
           return;
@@ -457,6 +693,10 @@ const AdminDashboard = () => {
             break;
           case 'website-ratings':
             setWebsiteRatings(data.data || []);
+            break;
+          case 'payments':
+            setPayments(data.payments || []);
+            setPaymentStats(data.stats || { statusCounts: {}, typeCounts: {} });
             break;
         }
       }
@@ -523,6 +763,42 @@ const AdminDashboard = () => {
       alert('House rejected successfully.');
     } catch (err) {
       alert('Rejection failed: ' + err.message);
+    }
+  };
+
+  // Create owner payout for a booking (admin action)
+  const handleCreatePayout = async (booking) => {
+    if (!booking) return;
+    if (booking.payout_done) {
+      alert('Payout already recorded for this booking.');
+      return;
+    }
+    if (booking.payment_status !== 'paid') {
+      alert('User payment is not completed yet. Cannot transfer to owner.');
+      return;
+    }
+
+    const ownerAmount = Number(booking.total_payment) - Number(booking.service_charge || 0);
+    const confirmMsg = `Confirm owner payout?\n\nOwner: ${booking.owner_name}\nBooking ID: ${booking.id}\nAmount: Rs. ${ownerAmount.toFixed(2)}`;
+    const ok = window.confirm(confirmMsg);
+    if (!ok) return;
+
+    const transactionId = window.prompt('Enter bank transfer reference (optional):') || '';
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/stay-bookings/${booking.id}/payout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethod: 'bank_transfer', transactionId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Payout failed');
+      }
+      alert('Payout recorded successfully.');
+      // Refresh the list to reflect payout status
+      await fetchData();
+    } catch (err) {
+      alert('Payout failed: ' + err.message);
     }
   };
 
@@ -709,6 +985,7 @@ const AdminDashboard = () => {
     { id: 'houses', label: 'House Management', icon: Home },
     { id: 'visitRequests', label: 'Visit Requests', icon: CalendarCheck },
     { id: 'stayBookings', label: 'Short-Term Bookings', icon: Calendar },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
    /* { id: 'boarding', label: 'Boarding Houses', icon: Building },*/
     { id: 'comments', label: 'Comments & Replies', icon: MessageCircle },
     { id: 'website-ratings', label: 'Website Ratings', icon: Star },
@@ -1768,6 +2045,52 @@ const AdminDashboard = () => {
     
     return (
       <div className="space-y-6">
+        {/* Financial Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-emerald-600">Rs. {financeSummary ? (financeSummary.total_revenue || 0) : 0}</p>
+              </div>
+              <CreditCard className="text-emerald-500" size={32} />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Listing fees + service charges</p>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Listing Fee Revenue</p>
+                <p className="text-2xl font-bold text-indigo-600">Rs. {financeSummary ? (financeSummary.listing_fee_revenue || 0) : 0}</p>
+              </div>
+              <Building className="text-indigo-500" size={32} />
+            </div>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Service Charge Revenue</p>
+                <p className="text-2xl font-bold text-purple-600">Rs. {financeSummary ? (financeSummary.service_charge_revenue || 0) : 0}</p>
+              </div>
+              <Star className="text-purple-500" size={32} />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">From paid short-term bookings</p>
+          </div>
+
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Payouts</p>
+                <p className="text-2xl font-bold text-amber-600">Rs. {financeSummary ? (financeSummary.pending_payouts_amount || 0) : 0}</p>
+              </div>
+              <Clock className="text-amber-500" size={32} />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">{financeSummary ? financeSummary.pending_payouts_count : 0} booking(s)</p>
+          </div>
+        </div>
+
         {/* Main Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
@@ -1813,7 +2136,7 @@ const AdminDashboard = () => {
         
         {/* Secondary Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+         {/* <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pending Boardings</p>
@@ -1831,7 +2154,7 @@ const AdminDashboard = () => {
               </div>
               <CheckCircle className="text-green-500" size={32} />
             </div>
-          </div>
+          </div>*/}
           
           <div className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
@@ -2643,6 +2966,7 @@ const AdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payout</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -2677,6 +3001,44 @@ const AdminDashboard = () => {
                       }`}>
                         {b.payment_status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {b.payout_done ? (
+                        <div>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>
+                          {b.payout_amount ? (
+                            <div className="text-xs text-gray-500 mt-1">Rs. {b.payout_amount}</div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleCreatePayout(b)}
+                            disabled={b.payment_status !== 'paid'}
+                            className={`px-3 py-1 rounded text-xs ${b.payment_status !== 'paid' ? 'bg-gray-300 text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                          >
+                            Transfer to Owner
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`http://localhost:5000/api/owner/${b.owner_id}/bank-details`);
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.error || 'Failed to fetch bank details');
+                                const d = data.banking || data;
+                                const masked = d.masked_account_number || d.account_number || '****';
+                                alert(`Banking details for ${b.owner_name}:\n\nBank: ${d.bank_name || '-'}\nBranch: ${d.branch_name || '-'}\nAccount Name: ${d.account_holder_name || '-'}\nAccount No: ${masked}`);
+                              } catch (e) {
+                                alert('Failed to load bank details: ' + e.message);
+                              }
+                            }}
+                            className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                            title="View owner's masked banking details"
+                          >
+                            Bank
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -3354,6 +3716,8 @@ const AdminDashboard = () => {
         return renderVisitRequests();
       case 'stayBookings':
         return renderStayBookings();
+      case 'payments':
+        return renderPayments();
       case 'boarding':
         return renderBoardingHouses();
       case 'comments':
@@ -3368,18 +3732,25 @@ const AdminDashboard = () => {
   return (
     <div className={`flex h-screen ${darkMode ? 'bg-gray-900' : 'bg-transparent'}`}>
       {/* Sidebar */}
-      <div className={`${darkClasses.sidebar} shadow-lg transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
-        <div className="p-4 mt-20">
+      <div className={`${darkClasses.sidebar} shadow-2xl transition-all duration-300 ${sidebarOpen ? 'w-72' : 'w-20'}`} style={sidebarBgStyle}>
+        <div className="px-4 py-5 mt-16 border-b border-transparent">
           <div className="flex items-center justify-between">
-            <h2 className={`font-bold text-xl ${darkClasses.text} ${sidebarOpen ? 'block' : 'hidden'}`}>
-              Admin Panel
-            </h2>
-            <button
+            <div className={`flex items-center gap-2 ${sidebarOpen ? 'opacity-100' : 'opacity-100'} transition-opacity`}>
+          
+           <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`p-2 rounded-lg ${darkClasses.hover}`}
+              aria-label="Toggle sidebar"
+              title={sidebarOpen ? 'Collapse' : 'Expand'}
             >
               <Menu size={20} className={darkClasses.text} />
             </button>
+              
+              <h2 className={`font-extrabold tracking-wide text-lg ${darkClasses.text} ${sidebarOpen ? 'block' : 'hidden'} mt-20`}>
+                Admin Panel
+              </h2>
+            </div>
+           
           </div>
         </div>
         
@@ -3392,13 +3763,13 @@ const AdminDashboard = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center px-4 py-3 text-left transition-colors relative ${
+                className={`w-full flex items-center px-4 py-3 text-left transition-all duration-200 relative rounded-lg mx-2 my-1 ${
                   activeSection === item.id ? darkClasses.sidebarActive : darkClasses.sidebarHover
-                }`}
+                } ${activeSection === item.id ? 'shadow-md' : 'hover:shadow'}`}
               >
-                <Icon size={20} className={`${activeSection === item.id ? 'text-blue-600' : darkClasses.text}`} />
-                <span className={`ml-3 ${sidebarOpen ? 'block' : 'hidden'} ${
-                  activeSection === item.id ? 'text-blue-600 font-medium' : darkClasses.text
+                <Icon size={20} className={`${activeSection === item.id ? 'text-blue-500' : darkClasses.text}`} />
+                <span className={`ml-3 ${sidebarOpen ? 'block' : 'hidden'} transition-colors ${
+                  activeSection === item.id ? 'text-blue-600 font-semibold' : darkClasses.text
                 }`}>
                   {item.label}
                 </span>
@@ -3406,7 +3777,7 @@ const AdminDashboard = () => {
                 {/* Notification badge for unread messages */}
                 {unreadCount > 0 && (
                   <div className={`ml-auto ${sidebarOpen ? 'block' : 'hidden'}`}>
-                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                    <span className="bg-red-500/90 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center shadow">
                       {unreadCount}
                     </span>
                   </div>
@@ -3432,7 +3803,7 @@ const AdminDashboard = () => {
         />
         
         {/* Semi-transparent Overlay */}
-        <div className={`absolute inset-0 z-10 backdrop-blur-lg ${
+        <div className={`absolute inset-0 z-10 backdrop-blur-xl ${
           darkMode ? 'bg-gray-900/70' : 'bg-white/30'
         }`} />
         

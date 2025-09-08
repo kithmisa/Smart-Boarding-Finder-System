@@ -139,7 +139,7 @@ router.put('/:id', async (req, res) => {
 
     const allowedFields = [
       'title', 'roomType', 'genderAllowed', 'price', 'address', 
-      'city', 'type', 'location', 'highlights', 'shortTerm', 
+      'city', 'type', 'location', 'googleMapsUrl', 'highlights', 'shortTerm', 
       'pricePerNight', 'description'
     ];
 

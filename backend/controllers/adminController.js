@@ -1036,7 +1036,7 @@ const getAllVisitRequests = async (req, res) => {
   }
 };
 
-// Get all short-term stay bookings for admin
+// Get all short-term stay bookings for admin (with payout status)
 const getAllStayBookings = async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -1061,7 +1061,21 @@ const getAllStayBookings = async (req, res) => {
         b.status,
         b.payment_status,
         b.created_at,
-        b.updated_at
+        b.updated_at,
+        CASE WHEN EXISTS (
+          SELECT 1 FROM payments p 
+          WHERE p.booking_id = b.id AND p.type = 'owner_payout' AND p.status = 'completed'
+        ) THEN 1 ELSE 0 END AS payout_done,
+        (
+          SELECT p.amount FROM payments p 
+          WHERE p.booking_id = b.id AND p.type = 'owner_payout' AND p.status = 'completed'
+          ORDER BY p.created_at DESC LIMIT 1
+        ) AS payout_amount,
+        (
+          SELECT p.created_at FROM payments p 
+          WHERE p.booking_id = b.id AND p.type = 'owner_payout' AND p.status = 'completed'
+          ORDER BY p.created_at DESC LIMIT 1
+        ) AS payout_at
       FROM booking_stay b
       JOIN houses h ON b.house_id = h.id
       JOIN users u ON b.user_id = u.id
@@ -1073,6 +1087,56 @@ const getAllStayBookings = async (req, res) => {
   } catch (error) {
     console.error('Error fetching stay bookings:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch stay bookings' });
+  }
+};
+
+// Create owner payout for a short-term booking (records payout and keeps service charge)
+const createOwnerPayout = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const { paymentMethod = 'bank_transfer', transactionId = null, notes = null } = req.body || {};
+
+    // Fetch booking
+    const [rows] = await db.query(
+      `SELECT id, house_id, owner_id, total_amount, service_charge, total_payment, payment_status 
+       FROM booking_stay WHERE id = ?`,
+      [bookingId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    const booking = rows[0];
+
+    if (booking.payment_status !== 'paid') {
+      return res.status(400).json({ success: false, message: 'Booking payment not completed yet' });
+    }
+
+    // Prevent duplicate payouts
+    const [existing] = await db.query(
+      `SELECT id FROM payments WHERE booking_id = ? AND type = 'owner_payout' AND status = 'completed' LIMIT 1`,
+      [bookingId]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Payout already recorded for this booking' });
+    }
+
+    // Owner receives base amount (total_payment - service_charge)
+    const ownerAmount = Number(booking.total_payment) - Number(booking.service_charge);
+    const orderId = `PAYOUT_${bookingId}_${Date.now()}`;
+
+    await db.query(
+      `INSERT INTO payments (
+        order_id, amount, currency, status, payment_method, transaction_id, notes, type, booking_id, house_id, owner_id, created_at
+      ) VALUES (?, ?, 'LKR', 'completed', ?, ?, ?, 'owner_payout', ?, ?, ?, NOW())`,
+      [orderId, ownerAmount, paymentMethod, transactionId, notes, bookingId, booking.house_id, booking.owner_id]
+    );
+
+    return res.json({ success: true, message: 'Owner payout recorded', payout: { orderId, amount: ownerAmount } });
+  } catch (error) {
+    console.error('Error creating owner payout:', error);
+    return res.status(500).json({ success: false, message: 'Failed to create owner payout' });
   }
 };
 
@@ -1200,6 +1264,181 @@ const getOwnerBankingDetails = async (req, res) => {
   }
 };
 
+// Financial summary for dashboard/payments overview
+const getFinancialSummary = async (req, res) => {
+  try {
+    // Listing fee revenue
+    const [listingFeeRows] = await db.query(
+      `SELECT COALESCE(SUM(amount), 0) AS listing_fee_revenue
+       FROM payments WHERE type = 'listing_fee' AND status = 'completed'`
+    );
+
+    // Booking gross (cash-in) and service charge revenue (net to system)
+    const [bookingSums] = await db.query(
+      `SELECT 
+         COALESCE(SUM(total_payment), 0) AS bookings_gross,
+         COALESCE(SUM(service_charge), 0) AS service_charge_revenue
+       FROM booking_stay WHERE payment_status = 'paid'`
+    );
+
+    // Owner payouts (cash-out)
+    const [payoutRows] = await db.query(
+      `SELECT COALESCE(SUM(amount), 0) AS owner_payouts
+       FROM payments WHERE type = 'owner_payout' AND status = 'completed'`
+    );
+
+    // Pending payouts (paid bookings without completed payout)
+    const [pendingPayouts] = await db.query(
+      `SELECT 
+         COALESCE(SUM(b.total_payment - b.service_charge), 0) AS pending_amount,
+         COUNT(*) AS pending_count
+       FROM booking_stay b
+       WHERE b.payment_status = 'paid'
+         AND NOT EXISTS (
+           SELECT 1 FROM payments p 
+           WHERE p.booking_id = b.id AND p.type = 'owner_payout' AND p.status = 'completed'
+         )`
+    );
+
+    const listing_fee_revenue = Number(listingFeeRows[0]?.listing_fee_revenue || 0);
+    const bookings_gross = Number(bookingSums[0]?.bookings_gross || 0);
+    const service_charge_revenue = Number(bookingSums[0]?.service_charge_revenue || 0);
+    const owner_payouts = Number(payoutRows[0]?.owner_payouts || 0);
+    const pending_payouts_amount = Number(pendingPayouts[0]?.pending_amount || 0);
+    const pending_payouts_count = Number(pendingPayouts[0]?.pending_count || 0);
+
+    const total_revenue = listing_fee_revenue + service_charge_revenue;
+
+    res.json({
+      success: true,
+      summary: {
+        total_revenue,
+        listing_fee_revenue,
+        service_charge_revenue,
+        bookings_gross,
+        owner_payouts,
+        pending_payouts_amount,
+        pending_payouts_count
+      }
+    });
+  } catch (error) {
+    console.error('Error computing financial summary:', error);
+    res.status(500).json({ success: false, message: 'Failed to compute financial summary' });
+  }
+};
+
+// Payments list with optional filters
+const getAllPayments = async (req, res) => {
+  try {
+    const { type, status, from, to, q } = req.query;
+    const where = [];
+    const params = [];
+    if (type && type !== 'all') { where.push('p.type = ?'); params.push(type); }
+    if (status && status !== 'all') { where.push('p.status = ?'); params.push(status); }
+    if (from) { where.push('p.created_at >= ?'); params.push(from); }
+    if (to) { where.push('p.created_at <= ?'); params.push(to); }
+    if (q) {
+      where.push('(p.order_id LIKE ? OR p.transaction_id LIKE ? OR h.title LIKE ? OR o.name LIKE ? OR u.username LIKE ? )');
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like);
+    }
+    const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+
+    const [rows] = await db.query(
+      `SELECT 
+         p.id, p.order_id, p.amount, p.currency, p.status, p.payment_method, p.transaction_id, p.notes,
+         p.type, p.booking_id, p.house_id, p.owner_id, p.created_at,
+         b.user_id, b.total_payment AS booking_total_payment, b.service_charge AS booking_service_charge,
+         h.title AS house_title, o.name AS owner_name, u.username AS user_name
+       FROM payments p
+       LEFT JOIN booking_stay b ON p.booking_id = b.id
+       LEFT JOIN houses h ON (CASE WHEN b.house_id IS NOT NULL THEN b.house_id ELSE p.house_id END) = h.id
+       LEFT JOIN owner o ON (CASE WHEN b.owner_id IS NOT NULL THEN b.owner_id ELSE p.owner_id END) = o.id
+       LEFT JOIN users u ON b.user_id = u.id
+       ${whereSql}
+       ORDER BY p.created_at DESC`
+    , params);
+
+    // Derive status distribution
+    const statusCounts = rows.reduce((acc, r) => {
+      const s = r.status || 'unknown';
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+    const typeCounts = rows.reduce((acc, r) => {
+      const t = r.type || 'unknown';
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({ success: true, payments: rows, stats: { statusCounts, typeCounts } });
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch payments' });
+  }
+};
+
+// Export payments as CSV
+const exportPaymentsCsv = async (req, res) => {
+  try {
+    // Reuse getAllPayments filters
+    req.query = req.query || {};
+    const fakeRes = {
+      json: (data) => data
+    };
+    // Manually run query identical to getAllPayments without recursion
+    const { type, status, from, to, q } = req.query;
+    const where = [];
+    const params = [];
+    if (type && type !== 'all') { where.push('p.type = ?'); params.push(type); }
+    if (status && status !== 'all') { where.push('p.status = ?'); params.push(status); }
+    if (from) { where.push('p.created_at >= ?'); params.push(from); }
+    if (to) { where.push('p.created_at <= ?'); params.push(to); }
+    if (q) {
+      where.push('(p.order_id LIKE ? OR p.transaction_id LIKE ? OR h.title LIKE ? OR o.name LIKE ? OR u.username LIKE ? )');
+      const like = `%${q}%`;
+      params.push(like, like, like, like, like);
+    }
+    const whereSql = where.length ? ('WHERE ' + where.join(' AND ')) : '';
+
+    const [rows] = await db.query(
+      `SELECT 
+         p.id, p.order_id, p.amount, p.currency, p.status, p.payment_method, p.transaction_id, p.notes,
+         p.type, p.booking_id, p.house_id, p.owner_id, p.created_at,
+         b.user_id, b.total_payment AS booking_total_payment, b.service_charge AS booking_service_charge,
+         h.title AS house_title, o.name AS owner_name, u.username AS user_name
+       FROM payments p
+       LEFT JOIN booking_stay b ON p.booking_id = b.id
+       LEFT JOIN houses h ON (CASE WHEN b.house_id IS NOT NULL THEN b.house_id ELSE p.house_id END) = h.id
+       LEFT JOIN owner o ON (CASE WHEN b.owner_id IS NOT NULL THEN b.owner_id ELSE p.owner_id END) = o.id
+       LEFT JOIN users u ON b.user_id = u.id
+       ${whereSql}
+       ORDER BY p.created_at DESC`
+    , params);
+
+    const header = [
+      'id','order_id','type','status','amount','currency','payment_method','transaction_id','notes','booking_id','house_id','house_title','owner_id','owner_name','user_name','created_at'
+    ];
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      const row = [
+        r.id, r.order_id, r.type, r.status, r.amount, r.currency, r.payment_method, r.transaction_id || '',
+        (r.notes || '').toString().replace(/\n|\r|,/g, ' '), r.booking_id || '', r.house_id || '',
+        (r.house_title || '').replace(/,/g, ' '), r.owner_id || '', (r.owner_name || '').replace(/,/g, ' '),
+        (r.user_name || '').replace(/,/g, ' '), r.created_at
+      ];
+      lines.push(row.join(','));
+    }
+    const csv = lines.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="payments.csv"');
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error('Error exporting payments CSV:', error);
+    res.status(500).json({ success: false, message: 'Failed to export payments' });
+  }
+};
+
 module.exports = {
   loginAdmin,
   getAllUsers,  
@@ -1207,6 +1446,7 @@ module.exports = {
   getAllComments,
   getAllHouses,
   getAllStayBookings,
+  createOwnerPayout,
   getHouseDetails,
   getHouseWaitingList,
   getAllVisitRequests,
@@ -1219,5 +1459,8 @@ module.exports = {
   replyToComment,
   markAllMessagesAsRead,
   syncEmailReplies,
-  getOwnerBankingDetails
+  getOwnerBankingDetails,
+  getFinancialSummary,
+  getAllPayments,
+  exportPaymentsCsv
 };

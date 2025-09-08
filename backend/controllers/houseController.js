@@ -22,7 +22,7 @@ const addHouse = async (req, res) => {
   try {
     const {
       title, roomType, genderAllowed, price, address,
-      city, type, location, highlights, shortTerm,
+      city, type, location, googleMapsUrl, highlights, shortTerm,
       pricePerNight, description, features, shortFeatures,
       availabilityStatus, availableDate, owner_id
     } = req.body;
@@ -81,10 +81,10 @@ const addHouse = async (req, res) => {
     const sql = `
       INSERT INTO houses (
         title, roomType, genderAllowed, price, address, city, type,
-        location, highlights, shortTerm, pricePerNight, description,
+        location, googleMapsUrl, highlights, shortTerm, pricePerNight, description,
         features, shortFeatures, images, availabilityStatus, availableDate, 
         owner_id, status, confirmed
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -96,6 +96,7 @@ const addHouse = async (req, res) => {
       safeValue(city),
       safeValue(type),
       safeValue(location),
+      safeValue(googleMapsUrl, null),
       safeValue(highlights, ''),
       isShortTerm ? 1 : 0,
       parseFloat(pricePerNight) || null,
@@ -394,7 +395,7 @@ const updateHouse = async (req, res) => {
     // List of allowed fields to update
     const allowedFields = [
       'title', 'roomType', 'genderAllowed', 'price', 'address', 
-      'city', 'type', 'location', 'highlights', 'shortTerm', 
+      'city', 'type', 'location', 'googleMapsUrl', 'highlights', 'shortTerm', 
       'pricePerNight', 'description', 'availabilityStatus', 
       'availableDate', 'bookingStatus'
     ];

@@ -176,17 +176,20 @@ const getRatingStats = async (req, res) => {
 // Get recent ratings (for admin purposes)
 const getRecentRatings = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = parseInt(req.query.offset) || 0;
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const rawOffset = Number.parseInt(req.query.offset, 10);
 
-    const [ratings] = await pool.execute(
-      `SELECT wr.*, u.username, u.email 
-       FROM website_ratings wr 
-       LEFT JOIN users u ON wr.user_id = u.id 
-       ORDER BY wr.created_at DESC 
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
-    );
+    // Sanitize and clamp values to avoid MySQL prepared statement issues with LIMIT/OFFSET
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 10;
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
+    const sql = `SELECT wr.*, u.username, u.email
+                 FROM website_ratings wr
+                 LEFT JOIN users u ON wr.user_id = u.id
+                 ORDER BY wr.created_at DESC
+                 LIMIT ${limit} OFFSET ${offset}`;
+
+    const [ratings] = await pool.query(sql);
 
     res.json({
       success: true,

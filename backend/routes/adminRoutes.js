@@ -53,6 +53,28 @@ router.get('/visit-requests', getAllVisitRequests);
 // Get all short-term stay bookings
 router.get('/stay-bookings', getAllStayBookings);
 
+// Create owner payout for a specific booking (admin-triggered)
+router.post('/stay-bookings/:id/payout', async (req, res) => {
+  const { createOwnerPayout } = require('../controllers/adminController');
+  return createOwnerPayout(req, res);
+});
+
+// Financial summary and payments management
+router.get('/finance/summary', async (req, res) => {
+  const { getFinancialSummary } = require('../controllers/adminController');
+  return getFinancialSummary(req, res);
+});
+
+router.get('/payments', async (req, res) => {
+  const { getAllPayments } = require('../controllers/adminController');
+  return getAllPayments(req, res);
+});
+
+router.get('/payments/export', async (req, res) => {
+  const { exportPaymentsCsv } = require('../controllers/adminController');
+  return exportPaymentsCsv(req, res);
+});
+
 // Send email
 router.post('/send-email', sendEmail);
 

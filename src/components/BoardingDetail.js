@@ -732,6 +732,19 @@ const BoardingDetail = () => {
                   <div>
                     <span className="font-semibold">Location:</span> {house?.location}
                   </div>
+                  {house?.googleMapsUrl && (
+                    <div className="md:col-span-2">
+                      <span className="font-semibold">Google Maps:</span>
+                      <a
+                        href={house.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline ml-2 break-all"
+                      >
+                        {house.googleMapsUrl}
+                      </a>
+                    </div>
+                  )}
                   <div>
                     <span className="font-semibold">Monthly Price:</span> 
                     <span className="text-green-600 font-bold ml-2">Rs. {house?.price}</span>
