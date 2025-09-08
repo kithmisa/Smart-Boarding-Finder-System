@@ -280,4 +280,90 @@ CREATE TABLE IF NOT EXISTS waiting_list (
   UNIQUE KEY unique_house_user (house_id, user_id)
 );
 
+CREATE TABLE website_ratings (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NULL, -- NULL for anonymous ratings
+  rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  ip_address VARCHAR(45), -- Store IP for anonymous ratings
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  INDEX idx_rating (rating),
+  INDEX idx_created_at (created_at),
+  INDEX idx_user_id (user_id)
+);
+
+select* from website_ratings_summary;
+-- Create view for website rating summary
+CREATE OR REPLACE VIEW website_ratings_summary AS
+SELECT 
+  COUNT(*) as total_ratings,
+  AVG(rating) as average_rating,
+  COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
+  COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
+  COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
+  COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
+  COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
+FROM website_ratings;
+
+ALTER TABLE owner 
+ADD COLUMN password VARCHAR(255) NOT NULL AFTER contact,
+ADD COLUMN is_active BOOLEAN DEFAULT TRUE AFTER password,
+ADD COLUMN last_login TIMESTAMP NULL AFTER is_active,
+ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER last_login,
+ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
+
+CREATE TABLE IF NOT EXISTS booking_stay (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  house_id INT NOT NULL,
+  user_id INT NOT NULL,
+  owner_id INT NOT NULL,
+  check_in_date DATE NOT NULL,
+  check_out_date DATE NOT NULL,
+  total_amount DECIMAL(10,2) NOT NULL,
+  advance_payment DECIMAL(10,2) NOT NULL,
+  service_charge DECIMAL(10,2) NOT NULL,
+  total_payment DECIMAL(10,2) NOT NULL,
+  status ENUM('pending', 'confirmed', 'rejected', 'cancelled', 'completed') DEFAULT 'pending',
+  check_in_time TIME NULL,
+  check_out_time TIME NULL,
+  rejection_reason TEXT NULL,
+  payment_status ENUM('pending', 'paid', 'refunded') DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  confirmed_at TIMESTAMP NULL,
+  rejected_at TIMESTAMP NULL,
+  FOREIGN KEY (house_id) REFERENCES houses(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (owner_id) REFERENCES owner(id) ON DELETE CASCADE,
+  INDEX idx_house_id (house_id),
+  INDEX idx_user_id (user_id),
+  INDEX idx_owner_id (owner_id),
+  INDEX idx_status (status)
+);
+ALTER TABLE booking_stay 
+ADD COLUMN payment_method VARCHAR(50) NULL;
+
+ALTER TABLE booking_stay
+  ADD COLUMN owner_message TEXT NULL AFTER special_requests;
+
+CREATE TABLE payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(64) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'LKR',
+  status VARCHAR(32) NOT NULL,              -- e.g., 'completed'
+  payment_method VARCHAR(32) NOT NULL,      -- e.g., 'manual'
+  transaction_id VARCHAR(64) NULL,
+  notes TEXT NULL,
+  type VARCHAR(32) NOT NULL,                -- 'listing_fee' | 'booking'
+  booking_id INT NULL,
+  house_id INT NULL,
+  owner_id INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE houses
+  ADD COLUMN  googleMapsUrl VARCHAR(2048) NULL AFTER location;
+
 
