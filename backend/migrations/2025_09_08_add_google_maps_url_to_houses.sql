@@ -6,3 +6,4 @@ ALTER TABLE houses
 -- CREATE INDEX IF NOT EXISTS idx_houses_googleMapsUrl ON houses (googleMapsUrl(255));
 
 
+

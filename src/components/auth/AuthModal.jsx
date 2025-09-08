@@ -138,6 +138,11 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
             localStorage.setItem('auth_token', result.token);
           }
           localStorage.setItem('has_authed', '1');
+          const uid = result?.user?.id ?? result?.user?.userId ?? result?.user?.user_id;
+          if (uid) {
+            localStorage.setItem('user_id', String(uid));
+            localStorage.setItem('user_data', JSON.stringify(result.user));
+          }
         } catch (e) {
           // Ignore storage errors
         }
@@ -672,6 +677,13 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                       // simulate login success path
                       localStorage.setItem('has_authed', '1');
                       if (data?.token) localStorage.setItem('auth_token', data.token);
+                      if (data?.user?.id || data?.user?.userId || data?.user?.user_id) {
+                        try {
+                          const uid = data.user.id ?? data.user.userId ?? data.user.user_id;
+                          localStorage.setItem('user_id', String(uid));
+                          localStorage.setItem('user_data', JSON.stringify(data.user));
+                        } catch {}
+                      }
                       onAuthSuccess({ token: data?.token, user: data?.user });
                       setShowOtpModal(false);
                     } catch (e) {

@@ -107,17 +107,30 @@ function App() {
      setIsAuthenticated(true);
      setCurrentUser(authData.user);
      
-     // Store user ID in localStorage for profile navigation
-     if (authData.user && authData.user.id) {
-       localStorage.setItem('user_id', authData.user.id.toString());
-       console.log('💾 Stored user_id:', authData.user.id);
+     // Robustly resolve and persist the authenticated user's id and data
+     const resolvedUserId = authData?.user?.id ?? authData?.user?.userId ?? authData?.user?.user_id;
+     if (resolvedUserId) {
+       try {
+         localStorage.setItem('user_id', String(resolvedUserId));
+         localStorage.setItem('user_data', JSON.stringify(authData.user));
+         console.log('💾 Stored user_id:', resolvedUserId);
+       } catch {}
      }
      
      setShowAuthModal(false);
      
      if (pendingNavigation) {
-       console.log('🔄 Navigating to pending route:', pendingNavigation);
-       window.location.href = pendingNavigation;
+       let target = pendingNavigation;
+       // If the pending route was a profile path, always point it to the current user
+       if (target.startsWith('/profile')) {
+         if (resolvedUserId) {
+           target = `/profile/${resolvedUserId}`;
+         } else {
+           target = '/';
+         }
+       }
+       console.log('🔄 Navigating to resolved route:', target);
+       window.location.href = target;
        setPendingNavigation(null);
      }
    };
@@ -128,6 +141,7 @@ function App() {
      localStorage.removeItem('has_authed');
      localStorage.removeItem('auth_token');
      localStorage.removeItem('user_id');
+     localStorage.removeItem('user_data');
    };
 
    const setPendingNav = (path) => {

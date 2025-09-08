@@ -263,15 +263,26 @@ const verifyOTP = async (req, res) => {
       try {
         const connection = await db.getConnection();
         try {
-          await connection.execute(
-            'UPDATE users SET email_verified = TRUE, status = "active" WHERE email = ?',
+          // Resolve target user deterministically when emails can duplicate
+          const [idRows] = await connection.execute(
+            'SELECT id FROM users WHERE email = ? ORDER BY id DESC LIMIT 1',
             [email]
+          );
+          if (!idRows || idRows.length === 0) {
+            console.warn('⚠️ Verified email but user id not found for:', email);
+            return res.status(200).json({ message: 'Email verified successfully', email });
+          }
+          const targetUserId = idRows[0].id;
+
+          await connection.execute(
+            'UPDATE users SET email_verified = TRUE, status = "active" WHERE id = ?',
+            [targetUserId]
           );
 
           // Fetch user to return in response (without password)
           const [users] = await connection.execute(
-            'SELECT * FROM users WHERE email = ?',
-            [email]
+            'SELECT * FROM users WHERE id = ?',
+            [targetUserId]
           );
 
           let user = users && users.length > 0 ? users[0] : null;
@@ -367,7 +378,8 @@ const registerUser = async (req, res) => {
       otp,
       expiry: otpExpiry,
       attempts: 0,
-      purpose: 'verification'
+      purpose: 'verification',
+      userId: userId
     });
     
     console.log('💾 OTP stored during registration:', { 
