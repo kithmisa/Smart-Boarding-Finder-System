@@ -38,6 +38,8 @@ CREATE TABLE owner (
     contact VARCHAR(20) NOT NULL
 );
 
+ALTER TABLE owner MODIFY COLUMN nic VARCHAR(255) NOT NULL;
+
 CREATE TABLE owner_bank_details (
     id INT PRIMARY KEY AUTO_INCREMENT,
     owner_id INT NOT NULL,
