@@ -93,10 +93,10 @@ const OwnerDetails = () => {
       return { valid: false, message: "Invalid year in NIC" };
     }
 
-    const dob = new Date(year, 0);
-    dob.setDate(dayOfYear);
-
-    if (dob.getFullYear() !== year) {
+   const dob = new Date(year, 0);
+   dob.setDate(dayOfYear);
+    
+  if (dob.getFullYear() !== year) {
       return { valid: false, message: "Invalid date in NIC" };
     }
 
@@ -117,7 +117,8 @@ const OwnerDetails = () => {
     return {
       valid: true,
       yearOfBirth: year,
-      dateOfBirth: dob.toISOString().split("T")[0],
+      //dateOfBirth: dob.toISOString().split("T")[0],
+       dateOfBirth: dob.toLocaleDateString('en-CA'),
       gender: gender,
       age: age,
       dayOfYear: dayOfYear,
