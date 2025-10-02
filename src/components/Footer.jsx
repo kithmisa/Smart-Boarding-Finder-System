@@ -231,7 +231,7 @@ const Footer = ({ isAuthenticated, user }) => {
           <h3 className="font-bold mb-2">Contact</h3>
           <p className="flex items-center gap-2">
             <FaEnvelope className="text-black-500" />
-            info@sbf.lk
+           smartboproject@gmail.com
           </p>
           <p className="flex items-center gap-2 mt-2">
             <FaPhoneAlt className="text-black-500" />

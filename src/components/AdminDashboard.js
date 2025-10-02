@@ -321,7 +321,7 @@ const AdminDashboard = () => {
     return comment.replied_at || comment.created_at;
   };
 
-  // Avatar helpers for left list (consistent colors and initials)
+ 
   const getInitials = (name, email) => {
     const source = (name && name.trim()) || (email && email.split('@')[0]) || 'U';
     const parts = source.trim().split(/\s+/);
@@ -421,7 +421,7 @@ const AdminDashboard = () => {
             <h3 className="text-lg font-semibold">Payments</h3>
             <div className="flex items-center gap-2">
               <button onClick={exportSelectedCsv} className="px-3 py-2 bg-gray-600 text-white rounded">Export Selected</button>
-              <button onClick={exportCsv} className="px-3 py-2 bg-gray-800 text-white rounded">Export CSV</button>
+             {/* <button onClick={exportCsv} className="px-3 py-2 bg-gray-800 text-white rounded">Export CSV</button> */}
               <button onClick={() => fetchData()} className="px-3 py-2 bg-blue-600 text-white rounded">Refresh</button>
             </div>
           </div>
@@ -1087,7 +1087,7 @@ const AdminDashboard = () => {
                 <div className="space-y-2">
                   <div><strong>Room Type:</strong> {selectedHouse.roomType}</div>
                   <div><strong>Gender Allowed:</strong> {selectedHouse.genderAllowed}</div>
-                  <div><strong>Price:</strong> ${selectedHouse.price}</div>
+                  <div><strong>Price:(lkr)</strong> {selectedHouse.price}</div>
                   <div className="flex items-center gap-2">
                     <MapPin size={16} />
                     <strong>Location:</strong> {selectedHouse.location}
@@ -1109,7 +1109,7 @@ const AdminDashboard = () => {
                   )}
                   <div><strong>Short Term Available:</strong> {selectedHouse.shortTerm ? 'Yes' : 'No'}</div>
                   {selectedHouse.shortTerm && selectedHouse.pricePerNight && (
-                    <div><strong>Price per Night:</strong> ${selectedHouse.pricePerNight}</div>
+                    <div><strong>Price per Night:(lkr)</strong> {selectedHouse.pricePerNight}</div>
                   )}
                 </div>
               </div>
@@ -1217,7 +1217,7 @@ const AdminDashboard = () => {
               )}
               {selectedHouse.status === 'approved' && (
                 <a
-                  href="http://localhost:3000/"
+                  href="http://localhost:3000/boarding"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
@@ -2407,7 +2407,7 @@ const AdminDashboard = () => {
               <Clock size={20} />
               Pending Houses ({pendingHouses.length})
             </h3>
-            <p className="text-sm text-yellow-600 mt-1">These houses are waiting for your approval</p>
+            <p className="text-sm text-yellow-600 mt-1"></p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -2504,12 +2504,12 @@ const AdminDashboard = () => {
               <CheckCircle size={20} />
               Approved Houses ({approvedHouses.length})
             </h3>
-            <p className="text-sm text-green-600 mt-1">
+         {/*   <p className="text-sm text-green-600 mt-1">
               These houses are live and visible to users at{' '}
               <a href="http://localhost:3000/boarding" target="_blank" rel="noopener noreferrer" className="underline">
                 localhost:3000/boarding
               </a>
-            </p>
+            </p>*/}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -2518,6 +2518,7 @@ const AdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">payment_status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price(lkr)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Short Term</th>
@@ -2602,7 +2603,7 @@ const AdminDashboard = () => {
                 <X size={20} />
                 Rejected Houses ({rejectedHouses.length})
               </h3>
-              <p className="text-sm text-red-600 mt-1">These houses have been rejected</p>
+              <p className="text-sm text-red-600 mt-1"></p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -2611,6 +2612,7 @@ const AdminDashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">payment_status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>

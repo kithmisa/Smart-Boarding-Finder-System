@@ -921,7 +921,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
              { id: 'favorites', label: 'Favorites', icon: Heart, count: favorites?.length || 0 },
              { id: 'requests', label: 'Visit Requests', icon: Calendar, count: visitRequests?.length || 0 },
              { id: 'bookings', label: 'My Bookings', icon: ClockIcon, count: bookings?.length || 0 },
-             { id: 'notifications', label: 'Notifications', icon: Bell, count: notifications?.filter(n => !n.is_read)?.length || 0 }
+           //  { id: 'notifications', label: 'Notifications', icon: Bell, count: notifications?.filter(n => !n.is_read)?.length || 0 }
            ].map((tab) => {
              const Icon = tab.icon;
              return (

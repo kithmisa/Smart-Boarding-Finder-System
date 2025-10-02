@@ -10,10 +10,10 @@ const safeValue = (value, fallback = null) => {
   return value;
 };
 
-// =======================
-// @desc Add a new house
-// @route POST /api/houses
-// =======================
+
+//  Add a new house
+// route POST /api/houses
+
 const addHouse = async (req, res) => {
   console.log('=== ADD HOUSE REQUEST ===');
   console.log('Body:', req.body);
@@ -27,7 +27,7 @@ const addHouse = async (req, res) => {
       availabilityStatus, availableDate, owner_id
     } = req.body;
 
-    // ✅ VALIDATION: Check if owner_id exists and is valid
+   
     if (!owner_id || owner_id === 'null' || owner_id === 'undefined' || owner_id === '') {
       console.error('❌ Missing or invalid owner_id:', owner_id);
       return res.status(400).json({ 
@@ -37,7 +37,7 @@ const addHouse = async (req, res) => {
       });
     }
 
-    // ✅ Convert owner_id to number and validate
+    
     const ownerIdNum = parseInt(owner_id);
     if (isNaN(ownerIdNum) || ownerIdNum <= 0) {
       console.error('❌ Invalid owner_id format:', owner_id);
@@ -47,7 +47,7 @@ const addHouse = async (req, res) => {
       });
     }
 
-    // ✅ VALIDATION: Check required fields
+   
     if (!title || !roomType || !genderAllowed || !price || !address || !city || !type || !location) {
       return res.status(400).json({ 
         error: 'Missing required fields',
@@ -55,7 +55,7 @@ const addHouse = async (req, res) => {
       });
     }
 
-    // ✅ Enhanced image handling
+    
     const images = req.files || [];
     
     if (images.length < 3) {
@@ -66,18 +66,18 @@ const addHouse = async (req, res) => {
 
     console.log(`✅ ${images.length} images uploaded`);
 
-    // Parse JSON strings to arrays
+    
     const featuresArr = features ? JSON.parse(features) : [];
     const shortFeaturesArr = shortFeatures ? JSON.parse(shortFeatures) : [];
 
-    // Convert string "true"/"false" to actual boolean
+    
     const isShortTerm = shortTerm === 'true';
 
-    // Create image paths array
+    
     const imagePaths = images.map(file => file.filename);
     console.log("Final image paths to store:", imagePaths);
 
-    // ✅ Enhanced insert query with status management - MATCHES YOUR TABLE STRUCTURE
+    
     const sql = `
       INSERT INTO houses (
         title, roomType, genderAllowed, price, address, city, type,
@@ -107,8 +107,8 @@ const addHouse = async (req, res) => {
       safeValue(availabilityStatus, 'available'),
       safeValue(availableDate, null),
       ownerIdNum,
-      'pending',  // ✅ New submissions are pending approval
-      0           // ✅ Not confirmed initially
+      'pending',  
+      0           
     ];
 
     console.log('✅ Executing insert query...');
@@ -149,15 +149,15 @@ const addHouse = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Get all houses
-// @route GET /api/houses
-// ============================
+
+// Get all houses
+// route GET /api/houses
+
 const getAllHouses = async (req, res) => {
   try {
     console.log('=== GET ALL HOUSES ===');
 
-    // ✅ Enhanced query with owner information
+    
     const query = `
       SELECT h.*, o.name as owner_name, o.contact as owner_phone, o.email as owner_email
       FROM houses h 
@@ -194,7 +194,7 @@ const getAllHouses = async (req, res) => {
         parsedShortFeatures = [];
       }
 
-      // ✅ Set status if null (backwards compatibility)
+      
       if (!house.status) {
         house.status = house.confirmed ? 'approved' : 'pending';
       }
@@ -218,17 +218,17 @@ const getAllHouses = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Get single house by ID with owner info
-// @route GET /api/houses/:id
-// ============================
+
+//Get single house by ID with owner info
+// route GET /api/houses/:id
+
 const getHouseById = async (req, res) => {
   const houseId = req.params.id;
 
   try {
     console.log('=== GET HOUSE BY ID ===', houseId);
 
-    // Enhanced query to include owner information
+    
     const query = `
       SELECT h.*, o.name as owner_name, o.contact as owner_phone, o.email as owner_email
       FROM houses h 
@@ -244,7 +244,7 @@ const getHouseById = async (req, res) => {
 
     const house = rows[0];
 
-    // Parse images properly
+    
     try {
       if (house.images) {
         house.images = JSON.parse(house.images);
@@ -262,7 +262,7 @@ const getHouseById = async (req, res) => {
       }
     }
 
-    // Parse features properly
+    
     try {
       house.features = house.features ? JSON.parse(house.features) : [];
       house.shortFeatures = house.shortFeatures ? JSON.parse(house.shortFeatures) : [];
@@ -279,10 +279,10 @@ const getHouseById = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Get houses by owner
-// @route GET /api/houses/owner/:owner_id
-// ============================
+
+// Get houses by owner
+// route GET /api/houses/owner/:owner_id
+
 const getHousesByOwner = async (req, res) => {
   const { owner_id } = req.params;
 
@@ -290,7 +290,7 @@ const getHousesByOwner = async (req, res) => {
   console.log('Owner ID:', owner_id);
 
   try {
-    // ✅ Validate owner_id
+   
     const ownerIdNum = parseInt(owner_id);
     if (isNaN(ownerIdNum) || ownerIdNum <= 0) {
       return res.status(400).json({ 
@@ -299,7 +299,7 @@ const getHousesByOwner = async (req, res) => {
       });
     }
 
-    // ✅ Enhanced query to get ALL houses for owner (pending, approved, rejected)
+    
     const query = `
       SELECT h.*, o.name as owner_name, o.contact as owner_phone, o.email as owner_email
       FROM houses h 
@@ -314,9 +314,9 @@ const getHousesByOwner = async (req, res) => {
     const [rows] = await pool.query(query, [ownerIdNum]);
     console.log(`✅ Found ${rows.length} houses for owner ${ownerIdNum}`);
 
-    // ✅ Process each house with enhanced status info
+   
     const processedHouses = rows.map(house => {
-      // Parse images
+     
       let parsedImages = [];
       try {
         if (house.images) {
@@ -330,7 +330,7 @@ const getHousesByOwner = async (req, res) => {
         parsedImages = [];
       }
 
-      // Parse features
+      
       let parsedFeatures = [];
       let parsedShortFeatures = [];
       try {
@@ -342,15 +342,15 @@ const getHousesByOwner = async (req, res) => {
         parsedShortFeatures = [];
       }
 
-      // ✅ Enhanced status information
+     
       house.imageCount = parsedImages.length;
       
-      // Set status if null (for backwards compatibility)
+      
       if (!house.status) {
         house.status = house.confirmed ? 'approved' : 'pending';
       }
 
-      // Add status labels for frontend display
+      
       house.statusLabel = house.status === 'pending' ? '⏳ Pending Review' :
                          house.status === 'approved' ? '✅ Approved & Live' :
                          house.status === 'rejected' ? '❌ Rejected' : 'Unknown';
@@ -377,10 +377,10 @@ const getHousesByOwner = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Update house
-// @route PUT /api/houses/:id
-// ============================
+
+//  Update house
+// route PUT /api/houses/:id
+
 const updateHouse = async (req, res) => {
   try {
     const { id } = req.params;
@@ -413,7 +413,7 @@ const updateHouse = async (req, res) => {
 
     // Add updated timestamp
     updateFields.push('updated_at = NOW()');
-    updateValues.push(id); // Add ID for WHERE clause
+    updateValues.push(id); 
 
     const sql = `UPDATE houses SET ${updateFields.join(', ')} WHERE id = ?`;
     
@@ -437,10 +437,10 @@ const updateHouse = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Delete house
+
+//  Delete house
 // @route DELETE /api/houses/:id
-// ============================
+
 const deleteHouse = async (req, res) => {
   try {
     const { id } = req.params;
@@ -464,10 +464,10 @@ const deleteHouse = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Update availability status
-// @route PUT /api/houses/:id/availability
-// ============================
+
+// Update availability status
+// PUT /api/houses/:id/availability
+
 const updateAvailability = async (req, res) => {
   try {
     const { id } = req.params;
@@ -498,10 +498,10 @@ const updateAvailability = async (req, res) => {
   }
 };
 
-// ============================
-// @desc Update booking status
-// @route PUT /api/houses/:id/booking-status
-// ============================
+
+//  Update booking status
+// PUT /api/houses/:id/booking-status
+
 const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -532,11 +532,11 @@ const updateBookingStatus = async (req, res) => {
   }
 };
 
-// ✅ Export all functions
+
 module.exports = {
   addHouse,
   getAllHouses,
-  getHouseById,        // ✅ Added this function
+  getHouseById,       
   getHousesByOwner,
   updateHouse,
   deleteHouse,

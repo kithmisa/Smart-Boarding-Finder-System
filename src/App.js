@@ -14,6 +14,8 @@ import HouseDetails from './components/HouseDetails';
 import Payment from './components/Payment';
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
+import PayHereSuccess from './components/PayHereSuccess';
+import PayHereCancel from './components/PayHereCancel';
 import BoardingDetail from './components/BoardingDetail'; 
 import ResetPassword from './components/ResetPassword';
 import FloatingAdminIcon from './components/FloatingAdminIcon';
@@ -224,6 +226,8 @@ function App() {
          <Route path="payment" element={<RequireAuth><Payment /></RequireAuth>} />
          <Route path="payment/success" element={<PaymentSuccess />} />
          <Route path="payment/cancel" element={<PaymentCancel />} />
+         <Route path="payment/payhere/success" element={<PayHereSuccess />} />
+         <Route path="payment/payhere/cancel" element={<PayHereCancel />} />
         <Route path="boarding" element={<BoardingList />} />
          <Route path="/boarding/:id" element={<RequireAuth><BoardingDetail /></RequireAuth>} />
          <Route path="/profile/:userId" element={<RequireAuth><UserProfile onLogout={handleLogout} /></RequireAuth>} />

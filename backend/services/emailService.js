@@ -204,7 +204,7 @@ const sendVisitRejectionEmail = async ({ to, userName, propertyTitle, rejectionR
 
         <div style="text-align: center; margin-top: 20px;">
           <p style="color: #666; font-size: 14px;">
-            Need help? Contact us at support@smartboardingfinder.com
+            Need help? Contact us at smartboproject@gmail.com
           </p>
         </div>
       </div>

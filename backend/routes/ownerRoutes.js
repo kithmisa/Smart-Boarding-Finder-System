@@ -2,17 +2,17 @@ const express = require('express');
 const router = express.Router();
 const { registerOwner, loginOwner } = require('../controllers/ownerController');
 
-// ✅ FIXED: Import your database connection (same path as in ownerController.js)
-const db = require('../db'); // ✅ ADD THIS LINE - matching your controller import path
 
-// ✅ Import encryption utilities
+const db = require('../db'); 
+
+
 const { encrypt, decrypt, maskAccountNumber } = require('../utils/encryption');
 
-// Correct route paths
+
 router.post('/register', registerOwner);
 router.post('/login', loginOwner);
 
-// ✅ FIXED: More robust POST route with better error handling
+
 router.post('/:owner_id/bank-details', async (req, res) => {
   try {
     const { owner_id } = req.params;
@@ -78,7 +78,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
       });
     }
 
-    // ✅ Check if owner exists
+   
     console.log('Checking if owner exists...');
     const [ownerCheck] = await db.query(
       'SELECT id FROM owner WHERE id = ?',
@@ -91,7 +91,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
     }
     console.log('✅ Owner exists:', ownerCheck[0]);
 
-    // ✅ Check if bank details already exist
+   
     console.log('Checking existing bank details...');
     const [existingBankDetails] = await db.query(
       'SELECT id FROM owner_bank_details WHERE owner_id = ?',
@@ -100,7 +100,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
 
     if (existingBankDetails.length > 0) {
       console.log('Updating existing bank details...');
-      // ✅ UPDATE existing bank details with encryption
+      
       const updateQuery = `
         UPDATE owner_bank_details 
         SET account_holder_name = ?, 
@@ -113,7 +113,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
         WHERE owner_id = ?
       `;
 
-      // ✅ Debug encryption process
+      
       console.log('🔐 Encryption Debug:');
       console.log('Original account number:', accountNumber);
       const encryptedAccountNumber = encrypt(accountNumber);
@@ -123,7 +123,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
       const [result] = await db.query(updateQuery, [
         accountHolderName,
         accountType,
-        encryptedAccountNumber, // ✅ Use encrypted value
+        encryptedAccountNumber, 
         bankName,
         branchName,
         branchCode || null,
@@ -138,14 +138,14 @@ router.post('/:owner_id/bank-details', async (req, res) => {
       });
     } else {
       console.log('Creating new bank details...');
-      // ✅ INSERT new bank details
+      
       const insertQuery = `
         INSERT INTO owner_bank_details 
         (owner_id, account_holder_name, account_type, account_number, bank_name, branch_name, branch_code, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `;
 
-      // ✅ Debug encryption process for INSERT
+      
       console.log('🔐 Encryption Debug (INSERT):');
       console.log('Original account number:', accountNumber);
       const encryptedAccountNumber = encrypt(accountNumber);
@@ -156,7 +156,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
         owner_id,
         accountHolderName,
         accountType,
-        encryptedAccountNumber, // ✅ Use encrypted value
+        encryptedAccountNumber, 
         bankName,
         branchName,
         branchCode || null
@@ -175,7 +175,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
     console.error('❌ Error saving bank details:', error);
     console.error('Error stack:', error.stack);
     
-    // ✅ Send detailed error info for debugging
+    
     res.status(500).json({ 
       error: 'Internal server error while saving bank details',
       details: error.message,
@@ -184,7 +184,7 @@ router.post('/:owner_id/bank-details', async (req, res) => {
   }
 });
 
-// ✅ NEW: Update owner profile endpoint
+
 router.put('/:owner_id/profile', async (req, res) => {
   try {
     const { owner_id } = req.params;
@@ -270,7 +270,7 @@ router.put('/:owner_id/profile', async (req, res) => {
   }
 });
 
-// ✅ NEW: Send OTP for email verification when profile is updated
+
 router.post('/:owner_id/send-email-otp', async (req, res) => {
   try {
     const { owner_id } = req.params;
@@ -308,7 +308,7 @@ router.post('/:owner_id/send-email-otp', async (req, res) => {
     // Use existing OTP system from authController
     const { sendOTP } = require('../controllers/authController');
     
-    // Create a mock request object for the existing sendOTP function
+    
     const mockReq = {
       body: {
         email: email.trim(),
@@ -333,7 +333,7 @@ router.post('/:owner_id/send-email-otp', async (req, res) => {
       })
     };
 
-    // Send OTP using existing system
+   
     await sendOTP(mockReq, mockRes);
 
   } catch (error) {
@@ -345,7 +345,7 @@ router.post('/:owner_id/send-email-otp', async (req, res) => {
   }
 });
 
-// ✅ NEW: Verify email OTP and update profile
+
 router.post('/:owner_id/verify-email-otp', async (req, res) => {
   try {
     const { owner_id } = req.params;
@@ -361,10 +361,10 @@ router.post('/:owner_id/verify-email-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email and OTP are required' });
     }
 
-    // Use existing OTP verification system from authController
+   
     const { verifyOTP } = require('../controllers/authController');
     
-    // Create a mock request object for the existing verifyOTP function
+    
     const mockReq = {
       body: {
         email: email.trim(),
@@ -380,12 +380,12 @@ router.post('/:owner_id/verify-email-otp', async (req, res) => {
           if (code === 200) {
             otpVerified = true;
           }
-          // Don't send response yet, we'll handle it after verification
+          
         }
       })
     };
 
-    // Verify OTP using existing system
+   
     await verifyOTP(mockReq, mockRes);
 
     if (!otpVerified) {
@@ -402,7 +402,7 @@ router.post('/:owner_id/verify-email-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email is already taken by another owner' });
     }
 
-    // Update owner profile with verified email
+    
     const updateQuery = `
       UPDATE owner 
       SET name = ?, email = ?, contact = ?, nic = ?
@@ -437,7 +437,7 @@ router.post('/:owner_id/verify-email-otp', async (req, res) => {
   }
 });
 
-// ✅ NEW: Get owner bank details endpoint
+
 router.get('/:owner_id/bank-details', async (req, res) => {
   try {
     const { owner_id } = req.params;
@@ -469,18 +469,18 @@ router.get('/:owner_id/bank-details', async (req, res) => {
       return res.status(404).json({ error: 'Bank details not found' });
     }
 
-    // ✅ Decrypt and mask sensitive data for display
+    
     let accountNumber, maskedAccountNumber;
     
     try {
-      // Try to decrypt (in case it's already encrypted)
+      
       accountNumber = decrypt(bankDetails[0].account_number);
       if (!accountNumber) {
-        // If decryption fails, assume it's plain text
+        
         accountNumber = bankDetails[0].account_number;
       }
     } catch (error) {
-      // If decryption throws error, use original (plain text)
+      
       accountNumber = bankDetails[0].account_number;
     }
     
@@ -494,7 +494,7 @@ router.get('/:owner_id/bank-details', async (req, res) => {
 
     console.log('✅ Bank details found and processed:', {
       ...decryptedDetails,
-      account_number: '***' + decryptedDetails.account_number.slice(-4), // Log masked version
+      account_number: '***' + decryptedDetails.account_number.slice(-4), 
       masked_account_number: decryptedDetails.masked_account_number,
       original_encrypted: bankDetails[0].account_number.substring(0, 10) + '...'
     });

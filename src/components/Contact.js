@@ -80,7 +80,7 @@ console.log('Raw response:', rawText);
               <div className="border p-4 py-10 rounded bg-white/80 shadow transition hover:bg-blue-600 hover:text-white">
                 <FaEnvelope className="text-black-500 text-4xl mb-4 mx-auto" />
                 <h3 className="text-xl font-bold mb-2">Email</h3>
-                <p className="text-sm">info@sbf.lk</p>
+                <p className="text-sm">smartboproject@gmail.com</p>
               </div>
 
               <div className="border p-4 py-10 rounded bg-white/80 shadow transition hover:bg-blue-600 hover:text-white">

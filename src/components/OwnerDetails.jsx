@@ -1373,6 +1373,7 @@ const OwnerDetails = () => {
                    <p><strong>4. Payment and Fees</strong></p>
                    <p>• Bank details are required for receiving booking payments</p>
                    <p>• All transactions are processed securely through the platform</p>
+                   <p>• We suggest you to have a separate bank account for this platform to avoid any complications</p>
                    
                    <p><strong>5. Prohibited Activities</strong></p>
                    <p>• Posting false or misleading information</p>
