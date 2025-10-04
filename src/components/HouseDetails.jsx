@@ -48,7 +48,7 @@ const BookingsTab = ({
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/owner/${ownerId}`);
+      const response = await fetch(`/api/bookings/stay/owner/${ownerId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -596,7 +596,7 @@ const HouseDetails = () => {
     
     try {
       console.log('Checking bank details for owner_id:', owner_id);
-      const response = await fetch(`http://localhost:5000/api/owner/${owner_id}/bank-details`);
+      const response = await fetch(`/api/owner/${owner_id}/bank-details`);
       
       if (response.ok) {
         const bankDetails = await response.json();
@@ -635,7 +635,7 @@ const HouseDetails = () => {
     try {
       console.log('Confirming booking:', selectedBooking.id, confirmData);
       
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/confirm`, {
+      const response = await fetch(`/api/bookings/stay/${selectedBooking.id}/confirm`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -680,7 +680,7 @@ const HouseDetails = () => {
     try {
       console.log('Rejecting booking:', selectedBooking.id, rejectReason);
       
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/reject`, {
+      const response = await fetch(`/api/bookings/stay/${selectedBooking.id}/reject`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -745,7 +745,7 @@ const HouseDetails = () => {
         }
       });
 
-      const response = await fetch('http://localhost:5000/api/houses', {
+      const response = await fetch('/api/houses', {
         method: 'POST',
         body: data,
       });
@@ -848,7 +848,7 @@ const HouseDetails = () => {
 
       console.log('Sending update data:', updateData);
 
-      const response = await fetch(`http://localhost:5000/api/houses/${editingProperty.id}`, {
+      const response = await fetch(`/api/houses/${editingProperty.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -919,7 +919,7 @@ const HouseDetails = () => {
       console.log('Submitting bank details for owner_id:', owner_id);
       console.log('Bank data payload:', bankData);
 
-      const response = await fetch(`http://localhost:5000/api/owner/${owner_id}/bank-details`, {
+      const response = await fetch(`/api/owner/${owner_id}/bank-details`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1055,7 +1055,7 @@ const HouseDetails = () => {
     
     setLoadingListings(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/houses/owner/${owner_id}`);
+      const response = await fetch(`/api/houses/owner/${owner_id}`);
       if (response.ok) {
         const listings = await response.json();
         setMyListings(listings);
@@ -1082,7 +1082,7 @@ const HouseDetails = () => {
     setLoadingVisitRequests(true);
     try {
       console.log('🔄 Fetching visit requests for owner:', owner_id);
-      const response = await fetch(`http://localhost:5000/api/visit-requests/owner/${owner_id}`);
+      const response = await fetch(`/api/visit-requests/owner/${owner_id}`);
       console.log('📡 Visit requests response status:', response.status);
       
       if (response.ok) {
@@ -1107,7 +1107,7 @@ const HouseDetails = () => {
     
     try {
       console.log('Fetching notifications for owner:', owner_id);
-      const response = await fetch(`http://localhost:5000/api/notifications/owner/${owner_id}`);
+      const response = await fetch(`/api/notifications/owner/${owner_id}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Notifications data:', data);
@@ -1128,7 +1128,7 @@ const HouseDetails = () => {
     try {
       const waitingListPromises = myListings.map(async (house) => {
         try {
-          const response = await fetch(`http://localhost:5000/api/houses/${house.id}/waiting-list`);
+          const response = await fetch(`/api/houses/${house.id}/waiting-list`);
           if (response.ok) {
             const data = await response.json();
             return { houseId: house.id, waitingList: data.waitingList || [] };
@@ -1282,7 +1282,7 @@ const HouseDetails = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/houses/${propertyId}`, {
+      const response = await fetch(`/api/houses/${propertyId}`, {
         method: 'DELETE',
       });
 
@@ -1301,7 +1301,7 @@ const HouseDetails = () => {
   // Update availability status
   const handleUpdateAvailability = async (propertyId, status, availableDate = null) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/houses/${propertyId}/availability`, {
+      const response = await fetch(`/api/houses/${propertyId}/availability`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1328,7 +1328,7 @@ const HouseDetails = () => {
   // Update booking status
   const handleUpdateBookingStatus = async (propertyId, status) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/houses/${propertyId}/booking-status`, {
+      const response = await fetch(`/api/houses/${propertyId}/booking-status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1383,7 +1383,7 @@ const HouseDetails = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/visit-requests/${confirmingRequestId}/confirm`, {
+      const response = await fetch(`/api/visit-requests/${confirmingRequestId}/confirm`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1434,7 +1434,7 @@ const HouseDetails = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/visit-requests/${rejectingRequestId}/reject`, {
+      const response = await fetch(`/api/visit-requests/${rejectingRequestId}/reject`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1528,7 +1528,7 @@ const HouseDetails = () => {
   const handleEmailChangeWithOTP = async (name, email, contact, nic) => {
     try {
       // Step 1: Send OTP to new email
-      const otpResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/send-email-otp`, {
+      const otpResponse = await fetch(`/api/owner/${owner_id}/send-email-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1570,7 +1570,7 @@ const HouseDetails = () => {
 
   // Function to update profile directly (when email unchanged)
   const updateProfileDirectly = async (name, email, contact, nic) => {
-    const response = await fetch(`http://localhost:5000/api/owner/${owner_id}/profile`, {
+    const response = await fetch(`/api/owner/${owner_id}/profile`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1616,7 +1616,7 @@ const HouseDetails = () => {
 
   const handleDownloadData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/owner/${owner_id}/data`, {
+      const response = await fetch(`/api/owner/${owner_id}/data`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -3223,7 +3223,7 @@ const HouseDetails = () => {
                   onClick={async () => {
                     try {
                       setIsVerifying(true);
-                      const otpResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/send-email-otp`, {
+                      const otpResponse = await fetch(`/api/owner/${owner_id}/send-email-otp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: otpData.email }),
@@ -3276,7 +3276,7 @@ const HouseDetails = () => {
                       setOtpError('');
 
                       // Verify OTP and update profile
-                      const verifyResponse = await fetch(`http://localhost:5000/api/owner/${owner_id}/verify-email-otp`, {
+                      const verifyResponse = await fetch(`/api/owner/${owner_id}/verify-email-otp`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

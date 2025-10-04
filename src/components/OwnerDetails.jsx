@@ -300,7 +300,7 @@ const OwnerDetails = () => {
     setOtpError('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/send-otp', {
+      const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email.trim().toLowerCase() }),
@@ -352,7 +352,7 @@ const OwnerDetails = () => {
     setOtpError('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -408,7 +408,7 @@ const OwnerDetails = () => {
         password: formData.password
       };
 
-      const res = await fetch('http://localhost:5000/api/owner/register', {
+      const res = await fetch('/api/owner/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleanedData),
@@ -463,7 +463,7 @@ const OwnerDetails = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/owner/login', {
+      const res = await fetch('/api/owner/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -547,7 +547,7 @@ const OwnerDetails = () => {
 
     try {
       // Send OTP to email via API
-      const res = await fetch('http://localhost:5000/api/auth/send-otp', {
+      const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -601,7 +601,7 @@ const OwnerDetails = () => {
     setForgotPasswordError('');
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const res = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -668,7 +668,7 @@ const OwnerDetails = () => {
         passwordLength: resetData.newPassword.length
       });
       
-      const res = await fetch('http://localhost:5000/api/auth/reset-password-otp', {
+      const res = await fetch('/api/auth/reset-password-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(resetData),

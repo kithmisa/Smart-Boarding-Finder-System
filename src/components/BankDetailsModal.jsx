@@ -74,7 +74,7 @@ const BankDetailsModal = ({ isOpen, onClose, onSubmit, ownerData }) => {
   const fetchExistingBankDetails = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/owner/${ownerData.id}/bank-details`);
+      const response = await fetch(`/api/owner/${ownerData.id}/bank-details`);
       
       if (response.ok) {
         const data = await response.json();

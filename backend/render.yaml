@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: smart-boarding-finder-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000

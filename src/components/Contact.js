@@ -26,7 +26,7 @@ const Contact = () => {
 
 
   try {
-    const response = await fetch('http://localhost:5000/api/contact/submit', {
+    const response = await fetch('/api/contact/submit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

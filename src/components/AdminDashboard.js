@@ -263,7 +263,7 @@ const AdminDashboard = () => {
   // Function to fetch owner banking details
   const fetchOwnerBankingDetails = async (ownerId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/owners/${ownerId}/banking`);
+      const res = await fetch(`/api/admin/owners/${ownerId}/banking`);
       if (res.ok) {
         const data = await res.json();
         return data.banking || null;
@@ -376,7 +376,7 @@ const AdminDashboard = () => {
     const exportCsv = async () => {
       try {
         const qs = new URLSearchParams(paymentFilters).toString();
-        const url = `http://localhost:5000/api/admin/payments/export?${qs}`;
+        const url = `/api/admin/payments/export?${qs}`;
         window.open(url, '_blank');
       } catch (e) {
         alert('Export failed');
@@ -590,7 +590,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchRatingStats = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/admin/website-ratings/stats');
+        const res = await fetch('/api/admin/website-ratings/stats');
         if (res.ok) {
           const data = await res.json();
           if (data.success) {
@@ -613,7 +613,7 @@ const AdminDashboard = () => {
     if (activeSection === 'dashboard') {
       // Load finance summary for overview
       try {
-        const res = await fetch('http://localhost:5000/api/admin/finance/summary');
+        const res = await fetch('/api/admin/finance/summary');
         if (res.ok) {
           const data = await res.json();
           if (data.success) setFinanceSummary(data.summary);
@@ -710,7 +710,7 @@ const AdminDashboard = () => {
   // Handle house approval/rejection
   const handleApproveHouse = async (houseId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/houses/${houseId}/approve`, {
+      const res = await fetch(`/api/admin/houses/${houseId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -744,7 +744,7 @@ const AdminDashboard = () => {
     
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/houses/${houseId}/reject`, {
+      const res = await fetch(`/api/admin/houses/${houseId}/reject`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({  rejection_reason: finalReason })
@@ -785,7 +785,7 @@ const AdminDashboard = () => {
 
     const transactionId = window.prompt('Enter bank transfer reference (optional):') || '';
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/stay-bookings/${booking.id}/payout`, {
+      const res = await fetch(`/api/admin/stay-bookings/${booking.id}/payout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentMethod: 'bank_transfer', transactionId })
@@ -805,7 +805,7 @@ const AdminDashboard = () => {
   // Fetch detailed house information
   const fetchHouseDetails = async (houseId) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/houses/${houseId}/details`);
+      const res = await fetch(`/api/admin/houses/${houseId}/details`);
       if (!res.ok) throw new Error('Failed to fetch house details');
       
       const data = await res.json();
@@ -820,7 +820,7 @@ const AdminDashboard = () => {
 
   const handleConfirmBoarding = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/boarding-houses/${id}/confirm`, {
+      const res = await fetch(`/api/admin/boarding-houses/${id}/confirm`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -844,7 +844,7 @@ const AdminDashboard = () => {
     if (!window.confirm('Are you sure you want to delete this?')) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/${type}/${id}`, {
+      const res = await fetch(`/api/admin/${type}/${id}`, {
         method: 'DELETE',
       });
       
@@ -881,7 +881,7 @@ const AdminDashboard = () => {
     if (!selectedComment || !replyMessage.trim()) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/comments/${selectedComment.id}/reply`, {
+      const res = await fetch(`/api/admin/comments/${selectedComment.id}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -928,7 +928,7 @@ const AdminDashboard = () => {
       ));
       
       // Send batch update to backend
-      const res = await fetch('http://localhost:5000/api/admin/comments/mark-all-read', {
+      const res = await fetch('/api/admin/comments/mark-all-read', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messageIds: unreadIds })
@@ -3024,7 +3024,7 @@ const AdminDashboard = () => {
                           <button
                             onClick={async () => {
                               try {
-                                const res = await fetch(`http://localhost:5000/api/owner/${b.owner_id}/bank-details`);
+                                const res = await fetch(`/api/owner/${b.owner_id}/bank-details`);
                                 const data = await res.json();
                                 if (!res.ok) throw new Error(data.error || 'Failed to fetch bank details');
                                 const d = data.banking || data;
@@ -3145,7 +3145,7 @@ const AdminDashboard = () => {
                 <button
                   onClick={async () => {
                     try {
-                      const res = await fetch('http://localhost:5000/api/admin/comments/sync-email-replies?includeSeen=true&fallbackLatest=true', {
+                      const res = await fetch('/api/admin/comments/sync-email-replies?includeSeen=true&fallbackLatest=true', {
                         method: 'POST'
                       });
                       if (!res.ok) throw new Error('Sync failed');
@@ -3334,7 +3334,7 @@ const AdminDashboard = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/admin/send-email', {
+      const res = await fetch('/api/admin/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

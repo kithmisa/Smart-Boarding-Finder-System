@@ -53,7 +53,7 @@ const BoardingDetail = () => {
       const userId = localStorage.getItem('user_id');
       if (!userId) return;
 
-      const response = await fetch(`http://localhost:5000/api/users/favorites/check/${id}?userId=${userId}`, {
+      const response = await fetch(`/api/users/favorites/check/${id}?userId=${userId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -73,7 +73,7 @@ const BoardingDetail = () => {
       const userId = localStorage.getItem('user_id');
       if (!userId) return;
 
-      const response = await fetch(`http://localhost:5000/api/waiting-list/check/${id}?userId=${userId}`);
+      const response = await fetch(`/api/waiting-list/check/${id}?userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.isOnWaitingList) {
@@ -88,7 +88,7 @@ const BoardingDetail = () => {
   // Fetch waiting list count
   const fetchWaitingListCount = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/waiting-list/house/${id}`);
+      const response = await fetch(`/api/waiting-list/house/${id}`);
       if (response.ok) {
         const data = await response.json();
         const activeCount = data.waitingList.filter(item => item.status === 'waiting').length;
@@ -103,7 +103,7 @@ const BoardingDetail = () => {
     const fetchHouse = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/houses/${id}`);
+        const response = await fetch(`/api/houses/${id}`);
         if (response.ok) {
           const data = await response.json();
           
@@ -151,7 +151,7 @@ const BoardingDetail = () => {
 
     try {
       setFavoritesLoading(true);
-      const response = await fetch('http://localhost:5000/api/users/favorites/toggle', {
+      const response = await fetch('/api/users/favorites/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, houseId: id })
@@ -175,7 +175,7 @@ const BoardingDetail = () => {
   // Fetch reviews for this boarding place
   const fetchReviews = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/reviews/boarding/${id}`);
+      const response = await fetch(`/api/reviews/boarding/${id}`);
       if (response.ok) {
         const data = await response.json();
         setReviews(data.reviews || []);
@@ -206,7 +206,7 @@ const BoardingDetail = () => {
 
     try {
       setSubmittingReview(true);
-      const response = await fetch('http://localhost:5000/api/reviews', {
+      const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -310,7 +310,7 @@ const BoardingDetail = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/visit-requests', {
+      const response = await fetch('/api/visit-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -367,7 +367,7 @@ const BoardingDetail = () => {
     const userId = localStorage.getItem('user_id');
     
     try {
-      const response = await fetch('http://localhost:5000/api/bookings/stay', {
+      const response = await fetch('/api/bookings/stay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +451,7 @@ const BoardingDetail = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/waiting-list/join', {
+      const response = await fetch('/api/waiting-list/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -486,7 +486,7 @@ const BoardingDetail = () => {
       const userId = localStorage.getItem('user_id');
       if (!userId) return;
 
-      const response = await fetch(`http://localhost:5000/api/waiting-list/leave`, {
+      const response = await fetch(`/api/waiting-list/leave`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

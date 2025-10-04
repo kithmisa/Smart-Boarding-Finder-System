@@ -159,9 +159,9 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const fetchUserProfile = async () => {
     try {
       console.log('Fetching user profile for userId:', userId);
-      console.log('API URL:', `http://localhost:5000/api/users/profile/${userId}`);
+      console.log('API URL:', `/api/users/profile/${userId}`);
       
-      const response = await fetch(`http://localhost:5000/api/users/profile/${userId}`);
+      const response = await fetch(`/api/users/profile/${userId}`);
       console.log('Profile response status:', response.status);
       console.log('Profile response headers:', response.headers);
       
@@ -277,7 +277,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const fetchFavorites = async () => {
     try {
       console.log('Fetching favorites for userId:', userId);
-      const response = await fetch(`http://localhost:5000/api/users/favorites/user/${userId}`);
+      const response = await fetch(`/api/users/favorites/user/${userId}`);
       console.log('Favorites response status:', response.status);
       
       if (response.ok) {
@@ -298,7 +298,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const fetchVisitRequests = async () => {
     try {
       console.log('Fetching visit requests for userId:', userId);
-      const response = await fetch(`http://localhost:5000/api/visit-requests/user/${userId}`);
+      const response = await fetch(`/api/visit-requests/user/${userId}`);
       console.log('Visit requests response status:', response.status);
       
       if (response.ok) {
@@ -319,7 +319,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const fetchNotifications = async () => {
     try {
       console.log('Fetching notifications for userId:', userId);
-      const response = await fetch(`http://localhost:5000/api/users/notifications/${userId}`);
+      const response = await fetch(`/api/users/notifications/${userId}`);
       console.log('Notifications response status:', response.status);
       
       if (response.ok) {
@@ -340,7 +340,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const fetchBookings = async () => {
     try {
       console.log('Fetching bookings for userId:', userId);
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/user/${userId}`);
+      const response = await fetch(`/api/bookings/stay/user/${userId}`);
       console.log('Bookings response status:', response.status);
       
       if (response.ok) {
@@ -408,7 +408,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
     
     try {
       // First check if email already exists
-      const checkResponse = await fetch(`http://localhost:5000/api/users/check-email?email=${encodeURIComponent(newEmail)}`);
+      const checkResponse = await fetch(`/api/users/check-email?email=${encodeURIComponent(newEmail)}`);
       
       if (checkResponse.ok) {
         const checkData = await checkResponse.json();
@@ -427,7 +427,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       // First, test if the backend is reachable
       try {
         console.log('Testing backend connectivity...');
-        const testResponse = await fetch('http://localhost:5000/api/auth/debug-otp', {
+        const testResponse = await fetch('/api/auth/debug-otp', {
           method: 'GET'
         });
         console.log('Backend test response status:', testResponse.status);
@@ -447,7 +447,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
           purpose: 'email_change'
         }));
         
-        const response = await fetch('http://localhost:5000/api/auth/send-otp', {
+        const response = await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -505,7 +505,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       // Try the standard OTP verification
       try {
         console.log('Verifying OTP with standard format...');
-        const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+        const response = await fetch('/api/auth/verify-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -600,12 +600,12 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       }
       
       console.log('Saving profile data to database (mapped):', cleanData);
-      console.log('Request URL:', `http://localhost:5000/api/users/profile/${userId}`);
+      console.log('Request URL:', `/api/users/profile/${userId}`);
       console.log('Request method: PUT');
       console.log('Request headers:', { 'Content-Type': 'application/json' });
       console.log('Request body:', JSON.stringify(cleanData));
       
-      const response = await fetch(`http://localhost:5000/api/users/profile/${userId}`, {
+      const response = await fetch(`/api/users/profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleanData)
@@ -675,7 +675,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       
       if (finalConfirm) {
         try {
-          const response = await fetch(`http://localhost:5000/api/users/profile/${userId}`, {
+          const response = await fetch(`/api/users/profile/${userId}`, {
             method: 'DELETE'
           });
 
@@ -713,7 +713,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Update payment status in backend
-      const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/payment`, {
+      const response = await fetch(`/api/bookings/stay/${selectedBooking.id}/payment`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -757,7 +757,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   // Mark notification as read
   const markNotificationRead = async (notificationId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/notifications/${notificationId}/read`, { 
+      const response = await fetch(`/api/users/notifications/${notificationId}/read`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -775,7 +775,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
   const cancelVisitRequest = async (requestId) => {
     if (window.confirm('Are you sure you want to cancel this visit request?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/users/visit-requests/${requestId}/cancel`, {
+        const response = await fetch(`/api/users/visit-requests/${requestId}/cancel`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId })

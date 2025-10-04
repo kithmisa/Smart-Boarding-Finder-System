@@ -29,7 +29,7 @@ const BoardingList = () => {
       // storage might be unavailable; ignore and fall back to in-memory only
     }
 
-    fetch("http://localhost:5000/api/houses/approved")
+    fetch("/api/houses/approved")
       .then(res => {
         if (!res.ok) {
           throw new Error('Failed to fetch houses');
@@ -103,7 +103,7 @@ const BoardingList = () => {
       const housesWithRatingsData = await Promise.all(
         housesData.map(async (house) => {
           try {
-            const response = await fetch(`http://localhost:5000/api/reviews/boarding/${house.id}`);
+            const response = await fetch(`/api/reviews/boarding/${house.id}`);
             if (response.ok) {
               const data = await response.json();
               return {

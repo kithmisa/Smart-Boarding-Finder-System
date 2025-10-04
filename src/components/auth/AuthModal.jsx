@@ -86,7 +86,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
         };
       } else if (activeTab === 'forgot') {
         // Always use OTP method for password reset
-        const otpResponse = await fetch('http://localhost:5000/api/auth/send-otp', {
+        const otpResponse = await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: forgotForm.email, purpose: 'password_reset' })
@@ -104,7 +104,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
+      const response = await fetch(`/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

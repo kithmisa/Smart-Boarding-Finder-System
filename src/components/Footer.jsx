@@ -20,7 +20,7 @@ const Footer = ({ isAuthenticated, user }) => {
 
   const fetchRatingStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/website-ratings/stats');
+      const response = await fetch('/api/website-ratings/stats');
       const data = await response.json();
       
       if (data.success) {
@@ -65,7 +65,7 @@ const Footer = ({ isAuthenticated, user }) => {
       console.log('Request body being sent:', requestBody);
       console.log('=== END FRONTEND DEBUG ===');
       
-      const response = await fetch('http://localhost:5000/api/website-ratings/submit', {
+      const response = await fetch('/api/website-ratings/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

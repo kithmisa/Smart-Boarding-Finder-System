@@ -25,7 +25,7 @@ const PayHereCancel = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:5000/api/payments/payhere/${orderId}/status`);
+        const response = await fetch(`/api/payments/payhere/${orderId}/status`);
         if (response.ok) {
           const data = await response.json();
           setPaymentStatus(data.payment);

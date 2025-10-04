@@ -102,7 +102,7 @@ const Payment = () => {
           country: 'Sri Lanka'
         };
 
-        const response = await fetch('http://localhost:5000/api/payments/payhere/listing/initiate', {
+        const response = await fetch('/api/payments/payhere/listing/initiate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -161,7 +161,7 @@ const Payment = () => {
           country: 'Sri Lanka'
         };
 
-        const response = await fetch('http://localhost:5000/api/payments/payhere/initiate', {
+        const response = await fetch('/api/payments/payhere/initiate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -212,7 +212,7 @@ const Payment = () => {
         setIsPaying(true);
         // Record payment in backend payments table
         try {
-          await fetch('http://localhost:5000/api/payments/listing/create', {
+          await fetch('/api/payments/listing/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -254,7 +254,7 @@ const Payment = () => {
     if (selectedBooking) {
       try {
         setIsPaying(true);
-        const response = await fetch(`http://localhost:5000/api/bookings/stay/${selectedBooking.id}/payment`, {
+        const response = await fetch(`/api/bookings/stay/${selectedBooking.id}/payment`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
