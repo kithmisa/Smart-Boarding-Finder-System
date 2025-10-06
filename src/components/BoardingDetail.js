@@ -655,7 +655,7 @@ const BoardingDetail = () => {
                     <div className="relative">
                       <div className="relative h-80 md:h-96 lg:h-[500px] rounded-lg overflow-hidden bg-gray-100 ">
                 <img
-                  src={`http://localhost:5000/uploads/${cleanedImages[currentImageIndex]}`}
+                  src={`/uploads/${cleanedImages[currentImageIndex]}`}
                   alt={`House ${currentImageIndex}`}
                           className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                           onClick={() => setIsImageModalOpen(true)}
@@ -696,7 +696,7 @@ const BoardingDetail = () => {
                   {cleanedImages.map((img, index) => (
                     <img
                       key={index}
-                      src={`http://localhost:5000/uploads/${img}`}
+                      src={`/uploads/${img}`}
                       alt={`Thumbnail ${index}`}
                             className={`w-20 h-16 object-cover rounded-lg cursor-pointer flex-shrink-0 transition-all duration-200 ${
                               index === currentImageIndex 
@@ -1463,7 +1463,7 @@ const BoardingDetail = () => {
           </button>
           
           <img
-            src={`http://localhost:5000/uploads/${cleanedImages[currentImageIndex]}`}
+            src={`/uploads/${cleanedImages[currentImageIndex]}`}
             alt={`House ${currentImageIndex}`}
             style={{
               maxWidth: '90%',

@@ -582,7 +582,7 @@ const BoardingList = () => {
 
                   return imageArray && imageArray.length > 0 ? (
                     <img
-                      src={`http://localhost:5000/uploads/${imageArray[0]}`}
+                      src={`/uploads/${imageArray[0]}`}
                       alt={house.title}
                       className="card-image"
                       onError={(e) => {

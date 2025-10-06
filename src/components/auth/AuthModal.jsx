@@ -666,7 +666,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                   onClick={async () => {
                     try {
                       setOtpMsg('');
-                      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+                      const res = await fetch('/api/auth/verify-otp', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: otpEmail, otp: otpCode, purpose: 'verification' })
                       });
@@ -699,7 +699,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                   onClick={async () => {
                     try {
                       setOtpMsg('');
-                      const res = await fetch(`http://localhost:5000/api/auth/send-otp`, {
+                      const res = await fetch(`/api/auth/send-otp`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: otpEmail, purpose: 'verification' })
                       });
@@ -753,7 +753,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                   onClick={async () => {
                     try {
                       setResetOtpMsg('');
-                      const res = await fetch('http://localhost:5000/api/auth/verify-otp', {
+                      const res = await fetch('/api/auth/verify-otp', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: otpEmail, otp: resetOtpCode, purpose: 'password_reset' })
                       });
@@ -776,7 +776,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                   onClick={async () => {
                     try {
                       setResetOtpMsg('');
-                      const res = await fetch(`http://localhost:5000/api/auth/send-otp`, {
+                      const res = await fetch(`/api/auth/send-otp`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email: otpEmail, purpose: 'password_reset' })
                       });
@@ -881,7 +881,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
                     }
                     
                     try {
-                      const res = await fetch('http://localhost:5000/api/auth/reset-password-otp', {
+                      const res = await fetch('/api/auth/reset-password-otp', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 

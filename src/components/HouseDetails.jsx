@@ -989,7 +989,7 @@ const HouseDetails = () => {
       console.error('❌ Network error saving bank details:', error);
       
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        alert('❌ Network error. Please check if the server is running on http://localhost:5000');
+        alert('❌ Network error. Please check if the server is running on ');
       } else {
         alert(`❌ Failed to save bank details: ${error.message}`);
       }
@@ -2013,7 +2013,7 @@ const HouseDetails = () => {
                               }
                             } else if (typeof img === 'string' && img.trim() !== '') {
                               // Existing image filename from database - construct full URL
-                              imageSrc = img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
+                              imageSrc = img.startsWith('http') ? img : `/uploads/${img}`;
                               isFileObject = false;
                             } else {
                               // Invalid image data
@@ -2289,7 +2289,7 @@ const HouseDetails = () => {
                         <div className="relative h-48">
                           {property.images && property.images.length > 0 ? (
                             <img
-                              src={`http://localhost:5000/uploads/${property.images[0]}`}
+                              src={`/uploads/${property.images[0]}`}
                               alt={property.title}
                               className="w-full h-full object-cover"
                               onError={(e) => {

@@ -660,7 +660,7 @@ const AdminDashboard = () => {
           return;
       }
 
-      const res = await fetch(`http://localhost:5000${endpoint}`);
+      const res = await fetch(`${endpoint}`);
       
       if (!res.ok) {
         throw new Error('Failed to fetch data');
@@ -1056,9 +1056,9 @@ const AdminDashboard = () => {
                     if (image.startsWith('http')) {
                       imageSrc = image;
                     } else if (image.startsWith('/')) {
-                      imageSrc = `http://localhost:5000${image}`;
+                      imageSrc = `${image}`;
                     } else {
-                      imageSrc = `http://localhost:5000/uploads/${image}`;
+                      imageSrc = `/uploads/${image}`;
                     }
                     
                     return (

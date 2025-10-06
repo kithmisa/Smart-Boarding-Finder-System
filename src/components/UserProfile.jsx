@@ -1116,7 +1116,7 @@ const UserProfile = ({ userId: propUserId, onLogout }) => {
                         <div className="favorite-card-image">
                           {imageArray && imageArray.length > 0 ? (
                             <img
-                              src={`http://localhost:5000/uploads/${imageArray[0]}`}
+                              src={`/uploads/${imageArray[0]}`}
                               alt={favorite.title}
                               onError={(e) => {
                                 e.target.src = '/placeholder-house.jpg';
