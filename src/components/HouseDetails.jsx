@@ -308,14 +308,14 @@ const HouseDetails = () => {
   const searchParams = new URLSearchParams(location.search || '');
   const navigate = useNavigate();
   
-  // ✅ Comprehensive debugging
+  
   console.log("=== DEBUGGING OWNER_ID ===");
   console.log("Full navigation state:", state);
   console.log("state?.ownerData:", state?.ownerData);
   console.log("state?.owner_id:", state?.owner_id);
   console.log("state?.ownerData?.id:", state?.ownerData?.id);
   
-  // ✅ Try multiple ways to get owner_id and convert to number
+
   let ownerInfoId = null;
   try {
     const ownerInfoRaw = localStorage.getItem('owner_info');
@@ -325,13 +325,13 @@ const HouseDetails = () => {
     }
   } catch {}
 
-  // ✅ Try sessionStorage too
+  
   let sessionOwnerId = null;
   try {
     sessionOwnerId = sessionStorage.getItem('owner_id') || null;
   } catch {}
 
-  // ✅ Try query param ?owner_id=123
+ 
   const ownerIdFromQuery = searchParams.get('owner_id');
 
   const rawOwnerId = state?.owner_id || 
@@ -343,7 +343,7 @@ const HouseDetails = () => {
                      localStorage.getItem('user_owner_id') ||
                      ownerInfoId;
 
-  // ✅ Convert to number and validate
+  
   let owner_id = null;
   console.log('🔍 Debug owner_id detection:');
   console.log('   rawOwnerId:', rawOwnerId);
@@ -395,18 +395,18 @@ const HouseDetails = () => {
     owner_id: owner_id || '',
   });
 
-  // ✅ State for listings management
+  
   const [myListings, setMyListings] = useState([]);
   const [loadingListings, setLoadingListings] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(null);
  
-  // ✅ NEW: Smooth scrolling and navigation states
+  
   const [activeSection, setActiveSection] = useState(state?.activeSection || 'add-property');
   const [isScrolling, setIsScrolling] = useState(false);
 
-  // ✅ NEW: Status statistics for dashboard
+ 
   const [statusStats, setStatusStats] = useState({
     pending: 0,
     approved: 0,
@@ -417,36 +417,36 @@ const HouseDetails = () => {
   const [showBankModal, setShowBankModal] = useState(false);
   const [hasBankDetails, setHasBankDetails] = useState(false);
   
-  // ✅ NEW: OTP Modal states
+  
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [otpData, setOtpData] = useState({ email: '', name: '', contact: '', nic: '' });
   const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   
-  // ✅ NEW: OTP Input ref for better focus management
+ 
   const otpInputRef = useRef(null);
   
-  // ✅ NEW: Effect to focus OTP input when modal opens
+
   useEffect(() => {
     if (showOTPModal && otpInputRef.current) {
-      // Small delay to ensure modal is fully rendered
+      
       setTimeout(() => {
         otpInputRef.current?.focus();
       }, 100);
     }
   }, [showOTPModal]);
 
-  // ✅ Edit Profile state
+  
   const [editingOwnerProfile, setEditingOwnerProfile] = useState(false);
   const [ownerProfileData, setOwnerProfileData] = useState(state?.ownerData || {});
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
-  // ✅ Visit requests and notifications state
+ 
   const [visitRequests, setVisitRequests] = useState([]);
   
-  // ✅ Booking modal states
+
   const [showBookingConfirmModal, setShowBookingConfirmModal] = useState(false);
   const [showBookingRejectModal, setShowBookingRejectModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -455,11 +455,11 @@ const HouseDetails = () => {
   const [notifications, setNotifications] = useState([]);
   const [loadingVisitRequests, setLoadingVisitRequests] = useState(false);
   
-  // ✅ Waiting list state
+  
   const [waitingListData, setWaitingListData] = useState({});
   const [loadingWaitingList, setLoadingWaitingList] = useState(false);
 
-  // ✅ NEW: Smooth scrolling function
+  
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -472,14 +472,14 @@ const HouseDetails = () => {
         inline: 'nearest'
       });
       
-      // Remove scrolling indicator after animation completes
+      
       setTimeout(() => {
         setIsScrolling(false);
       }, 1000);
     }
   };
 
-  // ✅ NEW: Calculate status statistics
+ 
   const calculateStatusStats = (listings) => {
     const stats = {
       pending: listings.filter(p => p.status === 'pending').length,
@@ -490,11 +490,11 @@ const HouseDetails = () => {
     setStatusStats(stats);
   };
 
-  // ✅ NEW: Handle edit property - navigate to form with data
+
   const handleEditProperty = (property) => {
     console.log('Editing property:', property);
     
-    // Parse images - if they're URLs from database, we'll handle them differently in display
+   
     let parsedImages = [];
     try {
       if (Array.isArray(property.images)) {
@@ -507,7 +507,7 @@ const HouseDetails = () => {
       parsedImages = [];
     }
     
-    // Populate form with existing property data
+    
     setFormData({
       ...property,
       features: Array.isArray(property.features) ? property.features : 
@@ -518,16 +518,16 @@ const HouseDetails = () => {
       owner_id: owner_id || property.owner_id
     });
     
-    // Set edit mode
+    
     setIsEditMode(true);
     setEditingProperty(property);
     
-    // Navigate to add-property section (which will now be in edit mode)
+   
     setActiveSection('add-property');
     scrollToSection('add-property');
   };
 
-  // ✅ NEW: Reset form and exit edit mode
+  
   const resetFormAndExitEdit = () => {
     setFormData({
       title: '',
@@ -548,7 +548,7 @@ const HouseDetails = () => {
     setEditingProperty(null);
   };
 
-  // ✅ NEW: Get status display info
+  
   const getStatusInfo = (status) => {
     switch (status) {
       case 'pending':
@@ -590,7 +590,7 @@ const HouseDetails = () => {
     }
   };
 
-  // ✅ FIXED: Improved bank details check function
+  
   const checkBankDetails = async () => {
     if (!owner_id) return false;
     
@@ -621,7 +621,7 @@ const HouseDetails = () => {
     }
   };
 
-  // ✅ Booking handlers
+  
   const handleConfirmBooking = async () => {
     console.log('handleConfirmBooking called');
     console.log('confirmData:', confirmData);
@@ -651,7 +651,7 @@ const HouseDetails = () => {
         setShowBookingConfirmModal(false);
         setConfirmData({ checkInTime: '', checkOutTime: '', ownerMessage: '' });
         setSelectedBooking(null);
-        // Refresh bookings by re-rendering the BookingsTab component
+        
         window.location.reload();
       } else {
         alert(`Failed to confirm booking: ${data.message || 'Unknown error'}`);
@@ -696,7 +696,7 @@ const HouseDetails = () => {
         setShowBookingRejectModal(false);
         setRejectReason('');
         setSelectedBooking(null);
-        // Refresh bookings by re-rendering the BookingsTab component
+        
         window.location.reload();
       } else {
         alert(`Failed to reject booking: ${data.message || 'Unknown error'}`);
@@ -707,7 +707,7 @@ const HouseDetails = () => {
     }
   };
 
-  // ✅ NEW: Separate property submission logic
+  
   const submitProperty = async (currentOwnerId) => {
     try {
       const data = new FormData();
@@ -733,11 +733,11 @@ const HouseDetails = () => {
       data.append('availableDate', formData.availableDate);
       data.append('owner_id', parseInt(currentOwnerId));
 
-      // ✅ Debug: Log what we're sending
+      
       console.log('Submitting property with owner_id:', parseInt(currentOwnerId));
       console.log('Total images to upload:', formData.images.length);
       
-      // ✅ Properly append each image file
+      
       formData.images.forEach((file, index) => {
         console.log(`Appending image ${index}:`, file.name, file.type, file.size);
         if (file instanceof File) {
@@ -761,7 +761,7 @@ const HouseDetails = () => {
       
       alert('✅ Property submitted successfully!\n\n🔍 Your property is now under review by our admin team.\n📧 You will be notified once it\'s approved and live on the platform.');
 
-      // ✅ After successful submission, navigate to payment for 10% listing fee
+     
       try {
         const monthlyPriceNum = parseFloat(formData.price) || 0;
         if (monthlyPriceNum > 0) {
@@ -787,7 +787,7 @@ const HouseDetails = () => {
         console.warn('Owner payment setup failed:', e);
       }
       
-      // ✅ Reset form and refresh listings
+      
       setFormData({
         ...state?.ownerData,
         title: '',
@@ -810,7 +810,7 @@ const HouseDetails = () => {
         owner_id: owner_id || '',
       });
       
-      // ✅ Refresh the listings to show the new property
+      
       fetchMyListings();
       
     } catch (error) {
@@ -819,15 +819,15 @@ const HouseDetails = () => {
     }
   };
 
-  // ✅ NEW: Update existing property function
+  
   const updateProperty = async (currentOwnerId) => {
     try {
-      // ✅ Debug: Log what we're updating
+      
       console.log('Updating property ID:', editingProperty.id);
       console.log('Updating property with owner_id:', parseInt(currentOwnerId));
       console.log('Form data:', formData);
       
-      // ✅ Prepare update data (using JSON for non-file fields)
+      
       const updateData = {
         title: formData.title,
         roomType: formData.roomType,
@@ -866,24 +866,24 @@ const HouseDetails = () => {
       const result = await response.json();
       console.log('✅ Property update success:', result);
       
-      // ✅ Handle features and images separately if needed
+      
       if (formData.features.length > 0 || formData.shortFeatures.length > 0) {
         console.log('Note: Features update may require separate API call');
       }
       
-      // ✅ Handle image updates separately if there are new files
+      
       const hasNewImages = formData.images.some(img => img instanceof File);
       if (hasNewImages) {
         console.log('Note: Image updates may require separate API call');
-        // For now, just log this - we can implement separate image update later
+        
       }
       
       alert('✅ Property updated successfully!');
       
-      // ✅ Use the reset function to clean up
+      
       resetFormAndExitEdit();
       
-      // ✅ Refresh listings and navigate back
+      
       fetchMyListings();
       setActiveSection('my-listings');
       scrollToSection('my-listings');

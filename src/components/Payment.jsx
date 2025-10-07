@@ -19,6 +19,8 @@ const Payment = () => {
   const [country, setCountry] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('manual'); // 'manual' or 'payhere'
+  const [isProcessingPayHere, setIsProcessingPayHere] = useState(false);
 
   // Get booking or owner payment data on component mount
   useEffect(() => {
@@ -81,6 +83,125 @@ const Payment = () => {
   const handleCvvChange = (e) => {
     const input = e.target.value.replace(/\D/g, '');
     if (input.length <= 3) setCvv(input);
+  };
+
+  // Handle PayHere payment
+  const handlePayHerePayment = async () => {
+    if (ownerPayment) {
+      // Owner listing fee flow
+      try {
+        setIsProcessingPayHere(true);
+        
+        const customerInfo = {
+          firstName: firstName || 'Property',
+          lastName: lastName || 'Owner',
+          email: email || 'owner@example.com',
+          phone: phone || '0771234567',
+          address: ownerPayment.address || 'No Address',
+          city: 'Colombo',
+          country: 'Sri Lanka'
+        };
+
+        const response = await fetch('http://localhost:5000/api/payments/payhere/listing/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            houseId: ownerPayment.house_id,
+            ownerId: Number(localStorage.getItem('owner_id')) || undefined,
+            amount: ownerPayment.total_payment,
+            customerInfo,
+            items: `Property Listing Fee - ${ownerPayment.title || 'New Property'}`
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Create form and submit to PayHere
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.checkoutUrl;
+          form.target = '_self';
+
+          // Add all PayHere parameters as hidden inputs
+          Object.keys(data.payHereParams).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data.payHereParams[key];
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+          document.body.removeChild(form);
+        } else {
+          throw new Error('Failed to initiate PayHere payment');
+        }
+      } catch (error) {
+        console.error('Error initiating PayHere payment:', error);
+        alert('Failed to initiate payment. Please try again.');
+        setIsProcessingPayHere(false);
+      }
+      return;
+    }
+
+    // Booking payment flow
+    if (selectedBooking) {
+      try {
+        setIsProcessingPayHere(true);
+        
+        const customerInfo = {
+          firstName: firstName || 'Guest',
+          lastName: lastName || 'User',
+          email: email || 'guest@example.com',
+          phone: phone || '0771234567',
+          address: selectedBooking.house_address || 'No Address',
+          city: 'Colombo',
+          country: 'Sri Lanka'
+        };
+
+        const response = await fetch('http://localhost:5000/api/payments/payhere/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: selectedBooking.id,
+            amount: selectedBooking.total_payment,
+            customerInfo,
+            items: `Booking Payment - ${selectedBooking.house_title}`
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Create form and submit to PayHere
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.checkoutUrl;
+          form.target = '_self';
+
+          // Add all PayHere parameters as hidden inputs
+          Object.keys(data.payHereParams).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data.payHereParams[key];
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+          document.body.removeChild(form);
+        } else {
+          throw new Error('Failed to initiate PayHere payment');
+        }
+      } catch (error) {
+        console.error('Error initiating PayHere payment:', error);
+        alert('Failed to initiate payment. Please try again.');
+        setIsProcessingPayHere(false);
+      }
+    }
   };
 
   // Handle simple payment
@@ -379,24 +500,77 @@ const Payment = () => {
           </div>
           </form>
 
-          {/* Simple Payment Action */}
+          {/* Payment Method Selection */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Payment Method</h3>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="manual"
+                  name="paymentMethod"
+                  value="manual"
+                  checked={paymentMethod === 'manual'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="mr-3"
+                />
+                <label htmlFor="manual" className="text-gray-700">
+                  <span className="font-medium">Manual Payment</span>
+                  <span className="text-sm text-gray-500 block">Mark as paid without actual payment processing</span>
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="radio"
+                  id="payhere"
+                  name="paymentMethod"
+                  value="payhere"
+                  checked={paymentMethod === 'payhere'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="mr-3"
+                />
+                <label htmlFor="payhere" className="text-gray-700">
+                  <span className="font-medium">PayHere Gateway</span>
+                  <span className="text-sm text-gray-500 block">Secure online payment with credit/debit cards</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Action */}
           <div className="bg-white rounded-lg p-6 border border-gray-200">
-            <p className="text-sm text-gray-600">
-              {ownerPayment
-                ? 'Click the button below to pay your listing fee and complete property submission.'
-                : 'Click the button below to confirm payment. This will mark your booking as paid.'}
+            <p className="text-sm text-gray-600 mb-4">
+              {paymentMethod === 'manual' 
+                ? (ownerPayment
+                    ? 'Click the button below to mark your listing fee as paid.'
+                    : 'Click the button below to mark your booking as paid.')
+                : (ownerPayment
+                    ? 'Click the button below to proceed to secure payment gateway.'
+                    : 'Click the button below to proceed to secure payment gateway.')
+              }
             </p>
           </div>
 
-          {/* Pay Button */}
-          <div className="text-center mt-8">
-            <button
-              onClick={handleSimplePay}
-              disabled={isPaying || (!selectedBooking && !ownerPayment)}
-              className={`bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-full text-lg font-semibold transition-colors duration-200 ${isPaying ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {isPaying ? 'PROCESSING...' : `PAY Rs. ${amountToPay}`}
-            </button>
+          {/* Pay Buttons */}
+          <div className="text-center mt-8 space-y-4">
+            {paymentMethod === 'manual' ? (
+              <button
+                onClick={handleSimplePay}
+                disabled={isPaying || (!selectedBooking && !ownerPayment)}
+                className={`bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-full text-lg font-semibold transition-colors duration-200 ${isPaying ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isPaying ? 'PROCESSING...' : `MARK AS PAID - Rs. ${amountToPay}`}
+              </button>
+            ) : (
+              <button
+                onClick={handlePayHerePayment}
+                disabled={isProcessingPayHere || (!selectedBooking && !ownerPayment)}
+                className={`bg-green-600 hover:bg-green-700 text-white px-10 py-3 rounded-full text-lg font-semibold transition-colors duration-200 ${isProcessingPayHere ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isProcessingPayHere ? 'REDIRECTING TO PAYHERE...' : `PAY WITH PAYHERE - Rs. ${amountToPay}`}
+              </button>
+            )}
+            
             {/* Prevent HTTP autofill warning only for card fields, allow others */}
             <div style={{position:'absolute',left:'-9999px',height:0,overflow:'hidden'}} aria-hidden="true">
               <input type="text" name="cc-name" autoComplete="cc-name" />

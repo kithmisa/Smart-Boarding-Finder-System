@@ -24,10 +24,10 @@ const registerOwner = async (req, res) => {
     }
 
     // TODO: Add email uniqueness check back in production
-    // const [existingEmail] = await db.query('SELECT * FROM owner WHERE email = ?', [email]);
-    // if (existingEmail.length > 0) {
-    //   return res.status(400).json({ error: 'Owner with this email already exists' });
-    // }
+    const [existingEmail] = await db.query('SELECT * FROM owner WHERE email = ?', [email]);
+     if (existingEmail.length > 0) {
+      return res.status(400).json({ error: 'Owner with this email already exists' });
+    }
 
     // Hash the password
     const saltRounds = 12; // Higher salt rounds for better security

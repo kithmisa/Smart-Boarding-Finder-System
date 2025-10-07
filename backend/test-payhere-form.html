@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayHere Test Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="email"], input[type="tel"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .pay-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .pay-button:hover {
+            background-color: #45a049;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-cards {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>🧪 PayHere Test Form</h1>
+        
+        <div class="info">
+            <strong>ℹ️ Test Information:</strong><br>
+            This form will redirect you to PayHere sandbox for testing.
+        </div>
+        
+        <div class="test-cards">
+            <strong>💳 Test Card Numbers:</strong><br>
+            • Visa: 4916217501611292<br>
+            • MasterCard: 5307732125531191<br>
+            • AMEX: 346781005510225<br>
+            <em>Use any valid name, CVV, and expiry date.</em>
+        </div>
+
+        <form method="post" action="https://sandbox.payhere.lk/pay/checkout" id="payhereForm">
+            <!-- Customer Details -->
+            <div class="form-group">
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" name="first_name" value="Test" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" name="last_name" value="User" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" value="test@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone:</label>
+                <input type="tel" id="phone" name="phone" value="0771234567" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="address">Address:</label>
+                <input type="text" id="address" name="address" value="Test Address" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="city">City:</label>
+                <input type="text" id="city" name="city" value="Colombo" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="country">Country:</label>
+                <input type="text" id="country" name="country" value="Sri Lanka" required>
+            </div>
+            
+            <!-- Order Details -->
+            <div class="form-group">
+                <label for="order_id">Order ID:</label>
+                <input type="text" id="order_id" name="order_id" value="TEST_ORDER_123" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="items">Items:</label>
+                <input type="text" id="items" name="items" value="Test Payment" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="amount">Amount (LKR):</label>
+                <input type="text" id="amount" name="amount" value="1.00" required>
+            </div>
+            
+            <!-- Hidden Fields -->
+            <input type="hidden" name="merchant_id" value="1231486">
+            <input type="hidden" name="currency" value="LKR">
+            <input type="hidden" name="return_url" value="https://untrepanned-kinley-raspingly.ngrok-free.app/payment/payhere/success?order_id=TEST_ORDER_123">
+            <input type="hidden" name="cancel_url" value="https://untrepanned-kinley-raspingly.ngrok-free.app/payment/payhere/cancel?order_id=TEST_ORDER_123">
+            <input type="hidden" name="notify_url" value="https://untrepanned-kinley-raspingly.ngrok-free.app/api/payments/payhere/notify">
+            <input type="hidden" name="hash" value="">
+            
+            <button type="submit" class="pay-button">🚀 Test PayHere Payment</button>
+        </form>
+        
+        <div style="margin-top: 20px; text-align: center; color: #666;">
+            <small>This will redirect to PayHere sandbox for testing</small>
+        </div>
+    </div>
+
+    <script>
+        // Auto-generate hash when form changes
+        function generateHash() {
+            const merchantSecret = '74393545821799568542347042261443766379';
+            const merchantId = '1231486';
+            const orderId = document.getElementById('order_id').value;
+            const items = document.getElementById('items').value;
+            const currency = 'LKR';
+            const amount = document.getElementById('amount').value;
+            
+            const hashString = merchantSecret + merchantId + orderId + items + currency + amount;
+            
+            // Generate MD5 hash (PayHere requires MD5)
+            const hash = CryptoJS.MD5(hashString).toString().toUpperCase();
+            document.querySelector('input[name="hash"]').value = hash;
+            
+            console.log('Hash String:', hashString);
+            console.log('Generated Hash:', hash);
+        }
+        
+        // Add event listeners
+        document.getElementById('order_id').addEventListener('input', generateHash);
+        document.getElementById('items').addEventListener('input', generateHash);
+        document.getElementById('amount').addEventListener('input', generateHash);
+        
+        // Generate hash on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            generateHash();
+        });
+    </script>
+</body>
+</html>

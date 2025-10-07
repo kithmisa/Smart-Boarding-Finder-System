@@ -1,0 +1,10 @@
+version: "2"
+authtoken: 32Viyeqt71wtSZyKNJEw5974xdB_7Ny1u9er8ot9JxJZSzDRV
+tunnels:
+  frontend:
+    proto: http
+    addr: 3000
+    domain: untrepanned-kinley-raspingly.ngrok-free.app
+  backend:
+    proto: http
+    addr: 5000
